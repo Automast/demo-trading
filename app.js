@@ -218,6 +218,53 @@ await db.exec(`
       balance TEXT DEFAULT '0'
     );
 
+    CREATE TABLE IF NOT EXISTS subscription_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      minimum TEXT,
+      maximum TEXT,
+      duration INTEGER,
+      roi TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS signal_packages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      price TEXT,
+      strength INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS user_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId INTEGER,
+      planName TEXT,
+      balance TEXT DEFAULT '0'
+    );
+
+    CREATE TABLE IF NOT EXISTS active_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId INTEGER,
+      planId INTEGER,
+      amount TEXT,
+      roiPercentage TEXT,
+      duration INTEGER,
+      startDate TEXT,
+      endDate TEXT,
+      estimatedReturns TEXT,
+      status TEXT DEFAULT 'active',
+      createdAt TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS active_signals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId INTEGER,
+      packageId INTEGER,
+      startDate TEXT,
+      endDate TEXT,
+      status TEXT DEFAULT 'active',
+      createdAt TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS notifications (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       userId INTEGER,
@@ -305,6 +352,47 @@ await db.exec(`
         }
         console.log(`Initialized stakes for existing user ${user.id}`);
       }
+    }
+
+    // Initialize default subscription plans if table empty
+    const subPlanCount = await db.get('SELECT COUNT(*) as count FROM subscription_plans');
+    if (subPlanCount.count === 0) {
+      const defaultPlans = [
+        { name: 'Premium plan', minimum: '4000', maximum: '50000', duration: 3, roi: '600' },
+        { name: 'Pro plan', minimum: '50000', maximum: '500000', duration: 10, roi: '700' },
+        { name: 'Expert plan', minimum: '500000', maximum: '1000000', duration: 31, roi: '900' },
+        { name: 'Gold pro plan', minimum: '1000000', maximum: '50000000', duration: 7, roi: '650' }
+      ];
+      for (const p of defaultPlans) {
+        await db.run(
+          `INSERT INTO subscription_plans (name, minimum, maximum, duration, roi) VALUES (?, ?, ?, ?, ?)`,
+          [p.name, p.minimum, p.maximum, p.duration, p.roi]
+        );
+      }
+      console.log('Inserted default subscription plans');
+    }
+
+    // Initialize default signal packages if table empty
+    const sigPkgCount = await db.get('SELECT COUNT(*) as count FROM signal_packages');
+    if (sigPkgCount.count === 0) {
+      const defaultSignals = [
+        { name: 'CD V1', price: '650', strength: 30 },
+        { name: 'CD V5 Pro', price: '6000', strength: 50 },
+        { name: 'BC-IRS', price: '7000', strength: 70 },
+        { name: 'XPN-4N', price: '8000', strength: 60 },
+        { name: 'BC-IRS LEVEL2 Pro', price: '10000', strength: 70 },
+        { name: 'TASANA Pro', price: '15000', strength: 80 },
+        { name: 'RBF V6 25000', price: '25000', strength: 90 },
+        { name: 'SILVER Pro', price: '35000', strength: 100 },
+        { name: 'WAYXE Pro', price: '50000', strength: 100 }
+      ];
+      for (const s of defaultSignals) {
+        await db.run(
+          `INSERT INTO signal_packages (name, price, strength) VALUES (?, ?, ?)`,
+          [s.name, s.price, s.strength]
+        );
+      }
+      console.log('Inserted default signal packages');
     }
 
   } catch (tableError) {
@@ -1071,6 +1159,23 @@ app.put('/api/user/:id/deposits/:depositId', async (req, res) => {
             `Your deposit of ${amount} ${method} has been confirmed, but no corresponding wallet was found.`,
             new Date().toISOString()
           ]);
+        }
+
+        // Credit referrer if applicable
+        const user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
+        if (user && user.referrerUsed) {
+          const refUser = await db.get('SELECT * FROM users WHERE myReferrerCode = ?', [user.referrerUsed]);
+          if (refUser) {
+            const reward = (parseFloat(currentDeposit.totalEUR) || 0) * 0.10;
+            const refWallet = await db.get('SELECT * FROM user_wallets WHERE userId = ? AND shortName = ? AND type = "fiat"', [refUser.id, refUser.accountCurrency]);
+            if (refWallet) {
+              const newRefBal = (parseFloat(refWallet.balance) || 0) + reward;
+              await db.run('UPDATE user_wallets SET balance = ? WHERE id = ?', [newRefBal.toString(), refWallet.id]);
+            }
+            const newEarn = (parseFloat(refUser.referrerEarnings) || 0) + reward;
+            await db.run('UPDATE users SET referrerEarnings = ?, updatedAt = ? WHERE id = ?', [newEarn.toString(), new Date().toISOString(), refUser.id]);
+            await db.run('INSERT INTO notifications (userId, message, createdAt) VALUES (?, ?, ?)', [refUser.id, `You earned ${reward} ${refUser.accountCurrency} from a referral deposit`, new Date().toISOString()]);
+          }
         }
       }
     }
@@ -2585,6 +2690,190 @@ app.post('/api/stakes/:stakeId/unstake', async (req, res) => {
   } catch (err) {
     console.error('Unstake error:', err);
     res.status(500).json({ error: 'Could not unstake', details: err.message });
+  }
+});
+
+// -----------------------------------------------------
+// Subscription and Signal Endpoints
+// -----------------------------------------------------
+
+// List subscription plans
+app.get('/api/subscription-plans', async (req, res) => {
+  try {
+    const rows = await db.all('SELECT * FROM subscription_plans');
+    res.json(rows);
+  } catch (err) {
+    console.error('List subscription plans error:', err);
+    res.status(500).json({ error: 'Could not fetch plans' });
+  }
+});
+
+// List signal packages
+app.get('/api/signal-packages', async (req, res) => {
+  try {
+    const rows = await db.all('SELECT * FROM signal_packages');
+    res.json(rows);
+  } catch (err) {
+    console.error('List signal packages error:', err);
+    res.status(500).json({ error: 'Could not fetch signals' });
+  }
+});
+
+// Overview for subscriptions
+app.get('/api/user/:userId/subscription-overview', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const plans = await db.all('SELECT * FROM subscription_plans');
+    const userSubs = await db.all('SELECT * FROM user_subscriptions WHERE userId = ?', [userId]);
+    const wallet = await db.get('SELECT * FROM user_wallets WHERE userId = ? AND shortName = ? AND type = "fiat"', [userId, user.accountCurrency]);
+    const fiatBalance = wallet ? parseFloat(wallet.balance) || 0 : 0;
+
+    res.json({ plans, userSubscriptions: userSubs, userCurrency: user.accountCurrency, fiatBalance });
+  } catch (err) {
+    console.error('Subscription overview error:', err);
+    res.status(500).json({ error: 'Could not fetch overview' });
+  }
+});
+
+// Overview for signals
+app.get('/api/user/:userId/signal-overview', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const packages = await db.all('SELECT * FROM signal_packages');
+    const userSignals = await db.all('SELECT * FROM user_signals WHERE userId = ?', [userId]);
+    const wallet = await db.get('SELECT * FROM user_wallets WHERE userId = ? AND shortName = ? AND type = "fiat"', [userId, user.accountCurrency]);
+    const fiatBalance = wallet ? parseFloat(wallet.balance) || 0 : 0;
+
+    res.json({ packages, userSignals, userCurrency: user.accountCurrency, fiatBalance });
+  } catch (err) {
+    console.error('Signal overview error:', err);
+    res.status(500).json({ error: 'Could not fetch overview' });
+  }
+});
+
+// Purchase subscription
+app.post('/api/subscriptions', async (req, res) => {
+  try {
+    const { userId, planId, amount } = req.body;
+    if (!userId || !planId || !amount) return res.status(400).json({ error: 'Missing fields' });
+
+    const plan = await db.get('SELECT * FROM subscription_plans WHERE id = ?', [planId]);
+    if (!plan) return res.status(404).json({ error: 'Plan not found' });
+
+    const amt = parseFloat(amount);
+    if (amt < parseFloat(plan.minimum) || amt > parseFloat(plan.maximum)) {
+      return res.status(400).json({ error: 'Amount outside allowed range' });
+    }
+
+    const wallet = await db.get('SELECT * FROM user_wallets WHERE userId = ? AND shortName = ? AND type = "fiat"', [userId, (await db.get('SELECT accountCurrency FROM users WHERE id = ?', [userId])).accountCurrency]);
+    if (!wallet) return res.status(404).json({ error: 'Fiat wallet not found' });
+    const currentBalance = parseFloat(wallet.balance) || 0;
+    if (currentBalance < amt) return res.status(400).json({ error: 'Insufficient balance' });
+
+    const now = new Date();
+    const endDate = new Date(now.getTime() + plan.duration * 24 * 60 * 60 * 1000);
+    const estimated = amt * (parseFloat(plan.roi) / 100);
+
+    const result = await db.run(
+      `INSERT INTO active_subscriptions (userId, planId, amount, roiPercentage, duration, startDate, endDate, estimatedReturns, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)`,
+      [userId, planId, amt.toString(), plan.roi, plan.duration, now.toISOString(), endDate.toISOString(), estimated.toString(), now.toISOString()]
+    );
+
+    // update user_subscriptions
+    let subRec = await db.get('SELECT * FROM user_subscriptions WHERE userId = ? AND planName = ?', [userId, plan.name]);
+    if (subRec) {
+      const newBal = (parseFloat(subRec.balance) || 0) + amt;
+      await db.run('UPDATE user_subscriptions SET balance = ? WHERE id = ?', [newBal.toString(), subRec.id]);
+    } else {
+      await db.run('INSERT INTO user_subscriptions (userId, planName, balance) VALUES (?, ?, ?)', [userId, plan.name, amt.toString()]);
+    }
+
+    // deduct from wallet
+    const newBalance = currentBalance - amt;
+    await db.run('UPDATE user_wallets SET balance = ? WHERE id = ?', [newBalance.toString(), wallet.id]);
+
+    await db.run('INSERT INTO notifications (userId, message, createdAt) VALUES (?, ?, ?)', [userId, `Subscribed to ${plan.name} with ${amt}`, now.toISOString()]);
+
+    res.json({ message: 'Subscription created', id: result.lastID, estimatedReturns: estimated });
+  } catch (err) {
+    console.error('Create subscription error:', err);
+    res.status(500).json({ error: 'Could not create subscription' });
+  }
+});
+
+// Purchase signal package
+app.post('/api/signals/purchase', async (req, res) => {
+  try {
+    const { userId, packageId } = req.body;
+    if (!userId || !packageId) return res.status(400).json({ error: 'Missing fields' });
+
+    const pkg = await db.get('SELECT * FROM signal_packages WHERE id = ?', [packageId]);
+    if (!pkg) return res.status(404).json({ error: 'Signal package not found' });
+
+    const user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
+    const wallet = await db.get('SELECT * FROM user_wallets WHERE userId = ? AND shortName = ? AND type = "fiat"', [userId, user.accountCurrency]);
+    if (!wallet) return res.status(404).json({ error: 'Fiat wallet not found' });
+
+    const price = parseFloat(pkg.price);
+    const currentBalance = parseFloat(wallet.balance) || 0;
+    if (currentBalance < price) return res.status(400).json({ error: 'Insufficient balance' });
+
+    const now = new Date();
+    await db.run(
+      `INSERT INTO active_signals (userId, packageId, startDate, endDate, status, createdAt) VALUES (?, ?, ?, ?, 'active', ?)`,
+      [userId, packageId, now.toISOString(), now.toISOString(), now.toISOString()]
+    );
+
+    // Update user_signals balance
+    let sigRec = await db.get('SELECT * FROM user_signals WHERE userId = ? AND signalName = ?', [userId, pkg.name]);
+    if (sigRec) {
+      const newBal = (parseFloat(sigRec.balance) || 0) + price;
+      await db.run('UPDATE user_signals SET balance = ? WHERE id = ?', [newBal.toString(), sigRec.id]);
+    } else {
+      await db.run('INSERT INTO user_signals (userId, signalName, balance) VALUES (?, ?, ?)', [userId, pkg.name, pkg.price]);
+    }
+
+    // Deduct from wallet
+    const newBalance = currentBalance - price;
+    await db.run('UPDATE user_wallets SET balance = ? WHERE id = ?', [newBalance.toString(), wallet.id]);
+
+    await db.run('INSERT INTO notifications (userId, message, createdAt) VALUES (?, ?, ?)', [userId, `Purchased signal ${pkg.name} for ${price}`, now.toISOString()]);
+
+    res.json({ message: 'Signal purchased' });
+  } catch (err) {
+    console.error('Purchase signal error:', err);
+    res.status(500).json({ error: 'Could not purchase signal' });
+  }
+});
+
+// Withdraw referral earnings
+app.post('/api/user/:id/referral-withdraw', async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const earnings = parseFloat(user.referrerEarnings) || 0;
+    if (earnings <= 0) return res.status(400).json({ error: 'No referral earnings' });
+
+    const wallet = await db.get('SELECT * FROM user_wallets WHERE userId = ? AND shortName = ? AND type = "fiat"', [userId, user.accountCurrency]);
+    if (!wallet) return res.status(404).json({ error: 'Fiat wallet not found' });
+
+    const newBalance = (parseFloat(wallet.balance) || 0) + earnings;
+    await db.run('UPDATE user_wallets SET balance = ? WHERE id = ?', [newBalance.toString(), wallet.id]);
+    await db.run('UPDATE users SET referrerEarnings = ?, updatedAt = ? WHERE id = ?', ['0', new Date().toISOString(), userId]);
+
+    await db.run('INSERT INTO notifications (userId, message, createdAt) VALUES (?, ?, ?)', [userId, `Withdrew ${earnings} ${user.accountCurrency} referral earnings`, new Date().toISOString()]);
+
+    res.json({ message: 'Referral earnings withdrawn', amount: earnings });
+  } catch (err) {
+    console.error('Referral withdraw error:', err);
+    res.status(500).json({ error: 'Could not withdraw earnings' });
   }
 });
 

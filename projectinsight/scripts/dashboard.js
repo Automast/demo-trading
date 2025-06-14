@@ -2220,44 +2220,42 @@ async function loadConvertPage() {
 
 async function loadSubscribePage() {
   return `
-    <div class="card">
-      <div class="card-header">
-        <h2 class="card-title">Subscription Plans</h2>
+    <div class="subscribe-container">
+      <div class="page-header fade-in">
+        <h2 class="page-title">Subscription Plans</h2>
+        <p class="page-subtitle">Choose a plan to start earning</p>
       </div>
-      <div class="card-body">
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon">
-              <i class="material-icons">stars</i>
+      <div class="subscribe-stats fade-in">
+        <div class="subscribe-stat-card">
+          <div class="subscribe-stat-value" id="subscriptionBalance">$0.00</div>
+          <div class="subscribe-stat-label">Subscription Balance</div>
+        </div>
+        <div class="subscribe-stat-card">
+          <button class="btn btn-secondary w-100" id="viewSubscriptionsBtn">
+            <i class="material-icons">visibility</i>
+            View history
+          </button>
+        </div>
+      </div>
+      <div class="plans-grid fade-in" id="subscriptionPlans"></div>
+    </div>
+
+    <div class="modal-overlay" id="subscribeModalOverlay" style="display:none;">
+      <div class="side-modal wide-modal active" id="subscribeModal">
+        <div class="modal-header">
+          <h2 id="subscribeModalTitle">Subscribe</h2>
+          <button class="close-modal" id="closeSubscribeModal"><i class="material-icons">close</i></button>
+        </div>
+        <div class="modal-content">
+          <form id="subscribeForm">
+            <div class="form-group">
+              <label>Amount:</label>
+              <input type="number" id="subscribeAmount" class="form-control" min="0" step="any" required />
             </div>
-            <div class="stat-value">Free</div>
-            <div class="stat-label">Basic Trading</div>
-            <div style="margin-top: 1rem;">
-              <button class="btn btn-secondary w-100">Current Plan</button>
-            </div>
-          </div>
-          
-          <div class="stat-card" style="border-color: var(--accent-color);">
-            <div class="stat-icon">
-              <i class="material-icons">diamond</i>
-            </div>
-            <div class="stat-value">$29</div>
-            <div class="stat-label">Pro Trading</div>
-            <div style="margin-top: 1rem;">
-              <button class="btn btn-primary w-100">Upgrade</button>
-            </div>
-          </div>
-          
-          <div class="stat-card">
-            <div class="stat-icon">
-              <i class="material-icons">workspace_premium</i>
-            </div>
-            <div class="stat-value">$99</div>
-            <div class="stat-label">Premium</div>
-            <div style="margin-top: 1rem;">
-              <button class="btn btn-primary w-100">Upgrade</button>
-            </div>
-          </div>
+            <button type="submit" class="btn btn-primary w-100" id="confirmSubscribeBtn">
+              <i class="material-icons">check</i> Confirm
+            </button>
+          </form>
         </div>
       </div>
     </div>
@@ -2266,22 +2264,36 @@ async function loadSubscribePage() {
 
 async function loadSignalsPage() {
   return `
-    <div class="card">
-      <div class="card-header">
-        <h2 class="card-title">Trading Signals</h2>
+    <div class="signal-container">
+      <div class="page-header fade-in">
+        <h2 class="page-title">Signals</h2>
+        <p class="page-subtitle">Purchase premium trading signals</p>
       </div>
-      <div class="card-body">
-        <div class="text-center">
-          <i class="material-icons" style="font-size: 4rem; color: var(--accent-color); margin-bottom: 1rem;">wifi</i>
-          <h3>Trading Signals</h3>
-          <p class="text-muted">Get real-time trading signals from our AI-powered system</p>
-          <p class="text-muted">Coming soon...</p>
-          <div style="margin-top: 2rem;">
-            <button class="btn btn-primary">
-              <i class="material-icons">notifications</i>
-              Get Notified When Available
-            </button>
-          </div>
+      <div class="signal-stats fade-in">
+        <div class="signal-stat-card">
+          <div class="signal-stat-value" id="signalBalance">$0.00</div>
+          <div class="signal-stat-label">Signal Balance</div>
+        </div>
+        <div class="signal-stat-card">
+          <button class="btn btn-secondary w-100" id="viewSignalsBtn">
+            <i class="material-icons">visibility</i>
+            View history
+          </button>
+        </div>
+      </div>
+      <div class="signals-grid fade-in" id="signalPackages"></div>
+    </div>
+
+    <div class="modal-overlay" id="signalModalOverlay" style="display:none;">
+      <div class="side-modal wide-modal active" id="signalModal">
+        <div class="modal-header">
+          <h2 id="signalModalTitle">Buy Signal</h2>
+          <button class="close-modal" id="closeSignalModal"><i class="material-icons">close</i></button>
+        </div>
+        <div class="modal-content">
+          <button class="btn btn-primary w-100" id="confirmSignalBtn">
+            <i class="material-icons">shopping_cart</i> Purchase
+          </button>
         </div>
       </div>
     </div>
@@ -2666,9 +2678,19 @@ async function initializePageFunctionality(page) {
       }
       break;
     case 'subscribe':
+      await loadScript('../scripts/subscribe.js');
+      if (window.initializeSubscribePage) {
+        await window.initializeSubscribePage();
+      }
+      break;
     case 'signals':
+      await loadScript('../scripts/signals.js');
+      if (window.initializeSignalsPage) {
+        await window.initializeSignalsPage();
+      }
+      break;
     case 'experts':
-      // These pages don't need special initialization yet
+      // No special initialization
       break;
     default:
       console.log(`No special initialization needed for ${page}`);
