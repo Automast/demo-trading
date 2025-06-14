@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - YourApp</title>
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <div>Loading...</div>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <a href="/" class="logo">
+      <img src="https://via.placeholder.com/32x32/00bcd4/ffffff?text=L" alt="Logo">
+      <span>YourApp</span>
+    </a>
+    <button class="menu-toggle" id="mobileMenuToggle">
+      <i class="material-icons">menu</i>
+    </button>
+    <div class="header-actions">
+      <button class="notification-icon" id="notificationBtn">
+        <i class="material-icons">notifications</i>
+      </button>
+      <button class="profile-button" id="profileBtn">
+        <i class="material-icons">person</i>
+        <span>Profile</span>
+        <i class="material-icons">keyboard_arrow_down</i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="mobile-header">
+      <h2>Menu</h2>
+      <button class="mobile-close" id="mobileClose">
+        <i class="material-icons">close</i>
+      </button>
+    </div>
+    <div class="nav-container">
+      <a href="#dashboard" class="nav-item active" data-page="dashboard">
+        <i class="material-icons">dashboard</i>
+        <span>Dashboard</span>
+      </a>
+      <a href="#deposit" class="nav-item" data-page="deposit">
+        <i class="material-icons">add_circle_outline</i>
+        <span>Deposit</span>
+      </a>
+      <a href="#withdraw" class="nav-item" data-page="withdraw">
+        <i class="material-icons">remove_circle_outline</i>
+        <span>Withdraw</span>
+      </a>
+      <a href="#assets" class="nav-item" data-page="assets">
+        <i class="material-icons">account_balance_wallet</i>
+        <span>Assets</span>
+      </a>
+      <a href="#markets" class="nav-item" data-page="markets">
+        <i class="material-icons">pie_chart</i>
+        <span>Markets</span>
+      </a>
+      <a href="#trade" class="nav-item" data-page="trade">
+        <i class="material-icons">trending_up</i>
+        <span>Trade</span>
+      </a>
+      <a href="#convert" class="nav-item" data-page="convert">
+        <i class="material-icons">swap_horiz</i>
+        <span>Convert</span>
+      </a>
+      <a href="#subscribe" class="nav-item" data-page="subscribe">
+        <i class="material-icons">card_membership</i>
+        <span>Subscribe</span>
+      </a>
+      <a href="#signals" class="nav-item" data-page="signals">
+        <i class="material-icons">wifi</i>
+        <span>Signals</span>
+      </a>
+      <a href="#stake" class="nav-item" data-page="stake">
+        <i class="material-icons">local_offer</i>
+        <span>Stake</span>
+      </a>
+      <a href="#referrals" class="nav-item" data-page="referrals">
+        <i class="material-icons">group</i>
+        <span>Referrals</span>
+      </a>
+      <a href="#connect" class="nav-item" data-page="connect">
+        <i class="material-icons">link</i>
+        <span>Connect Wallet</span>
+      </a>
+      <a href="#experts" class="nav-item" data-page="experts">
+        <i class="material-icons">content_copy</i>
+        <span>Copy Experts</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Main Content Area -->
+  <main class="content">
+    <div id="page-content">
+      <!-- Dynamic content loads here -->
+    </div>
+  </main>
+
+  <!-- Notification Popup -->
+  <div class="notification-popup" id="notificationPopup">
+    <div class="popup-header">
+      <h3>Notifications</h3>
+      <button class="close-popup" id="closeNotifications">
+        <i class="material-icons">close</i>
+      </button>
+    </div>
+    <div class="popup-content">
+      <div class="notification-empty">
+        <i class="material-icons">notifications_none</i>
+        <p>No new notifications</p>
+        <p>You'll see your notifications here</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Dropdown -->
+  <div class="profile-dropdown" id="profileDropdown">
+    <a href="#" class="dropdown-item" id="profileSettingsBtn">
+      <i class="material-icons">settings</i>
+      <span>Settings</span>
+    </a>
+    <a href="#" class="dropdown-item" id="profileDetailsBtn">
+      <i class="material-icons">person</i>
+      <span>Profile</span>
+    </a>
+    <div class="dropdown-divider"></div>
+    <a href="#" class="dropdown-item" id="logoutBtn">
+      <i class="material-icons">logout</i>
+      <span>Logout</span>
+    </a>
+  </div>
+
+  <!-- Side Modals -->
+  <div class="modal-overlay" id="modalOverlay"></div>
+  
+  <!-- Profile Modal -->
+  <div class="side-modal" id="profileModal">
+    <div class="modal-header">
+      <h2>Profile</h2>
+      <button class="close-modal" id="closeProfileModal">
+        <i class="material-icons">close</i>
+      </button>
+    </div>
+    <div class="modal-content">
+      <div class="profile-section">
+        <div class="profile-avatar">
+          <i class="material-icons">person</i>
+        </div>
+        <div class="profile-info">
+          <h3 id="profileName">User Name</h3>
+          <p id="profileEmail">user@email.com</p>
+        </div>
+      </div>
+      <div class="profile-details">
+        <div class="detail-item">
+          <label>First Name</label>
+          <input type="text" id="firstName" readonly />
+        </div>
+        <div class="detail-item">
+          <label>Last Name</label>
+          <input type="text" id="lastName" readonly />
+        </div>
+        <div class="detail-item">
+          <label>Email</label>
+          <input type="email" id="email" readonly />
+        </div>
+        <div class="detail-item">
+          <label>Phone</label>
+          <input type="text" id="phone" readonly />
+        </div>
+        <div class="detail-item">
+          <label>Country</label>
+          <input type="text" id="country" readonly />
+        </div>
+        <div class="detail-item">
+          <label>Account Currency</label>
+          <input type="text" id="accountCurrency" readonly />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="side-modal" id="settingsModal">
+    <div class="modal-header">
+      <h2>Settings</h2>
+      <button class="close-modal" id="closeSettingsModal">
+        <i class="material-icons">close</i>
+      </button>
+    </div>
+    <div class="modal-content">
+      <div class="settings-section">
+        <h3>Account Settings</h3>
+        <div class="setting-item">
+          <label>Two-Factor Authentication</label>
+          <div class="toggle-switch">
+            <input type="checkbox" id="twoFactorToggle" />
+            <span class="slider"></span>
+          </div>
+        </div>
+        <div class="setting-item">
+          <label>Email Notifications</label>
+          <div class="toggle-switch">
+            <input type="checkbox" id="emailNotifications" checked />
+            <span class="slider"></span>
+          </div>
+        </div>
+        <div class="setting-item">
+          <label>SMS Notifications</label>
+          <div class="toggle-switch">
+            <input type="checkbox" id="smsNotifications" />
+            <span class="slider"></span>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>Display Settings</h3>
+        <div class="setting-item">
+          <label>Theme</label>
+          <select id="themeSelect">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="auto">Auto</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <label>Language</label>
+          <select id="languageSelect">
+            <option value="en">English</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Connect Wallet Modal -->
+  <div class="side-modal right-modal" id="connectWalletModal">
+    <div class="modal-header">
+      <h2>Connect Wallet</h2>
+      <button class="close-modal" id="closeConnectModal">
+        <i class="material-icons">close</i>
+      </button>
+    </div>
+    <div class="modal-content">
+      <div class="wallet-options">
+        <div class="wallet-option">
+          <div class="wallet-icon">
+            <img src="https://via.placeholder.com/40x40/ff6b35/ffffff?text=M" alt="MetaMask" />
+          </div>
+          <div class="wallet-info">
+            <h4>MetaMask</h4>
+            <p>Connect using browser wallet</p>
+          </div>
+          <button class="connect-btn">Connect</button>
+        </div>
+        <div class="wallet-option">
+          <div class="wallet-icon">
+            <img src="https://via.placeholder.com/40x40/3375bb/ffffff?text=W" alt="WalletConnect" />
+          </div>
+          <div class="wallet-info">
+            <h4>WalletConnect</h4>
+            <p>Scan QR code with mobile wallet</p>
+          </div>
+          <button class="connect-btn">Connect</button>
+        </div>
+        <div class="wallet-option">
+          <div class="wallet-icon">
+            <img src="https://via.placeholder.com/40x40/f0b90b/ffffff?text=B" alt="Binance" />
+          </div>
+          <div class="wallet-info">
+            <h4>Binance Wallet</h4>
+            <p>Connect to Binance Chain Wallet</p>
+          </div>
+          <button class="connect-btn">Connect</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Referrals Modal -->
+  <div class="side-modal wide-modal" id="referralsModal">
+    <div class="modal-header">
+      <h2>Referral Program</h2>
+      <button class="close-modal" id="closeReferralsModal">
+        <i class="material-icons">close</i>
+      </button>
+    </div>
+    <div class="modal-content">
+      <div class="referral-stats">
+        <div class="stat-card">
+          <div class="stat-value">0</div>
+          <div class="stat-label">Total Referrals</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">$0.00</div>
+          <div class="stat-label">Total Earned</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">15%</div>
+          <div class="stat-label">Commission Rate</div>
+        </div>
+      </div>
+      <div class="referral-link">
+        <label>Your Referral Link</label>
+        <div class="link-input">
+          <input type="text" id="referralLinkInput" value="https://yourapp.com/signup?ref=USER123" readonly />
+          <button class="copy-btn" id="copyReferralLink">
+            <i class="material-icons">content_copy</i>
+          </button>
+        </div>
+      </div>
+      <div class="referral-history">
+        <h3>Referral History</h3>
+        <div class="empty-state">
+          <i class="material-icons">people</i>
+          <p>No referrals yet</p>
+          <p>Share your link to start earning!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="../scripts/dashboard.js"></script>
+
+
+
+</body>
+</html>

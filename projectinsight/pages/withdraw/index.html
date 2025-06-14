@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Withdraw</title>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Withdraw Funds</h2>
+      <button class="btn btn-primary" id="openWithdrawBtn">
+        <i class="material-icons">remove</i>
+        Make a Withdrawal
+      </button>
+    </div>
+    <div class="card-body">
+      <div class="form-container" style="max-width: 100%; margin: 0;">
+        <div class="form-group">
+          <input type="text" id="searchInput" class="form-control" placeholder="Search by reference/method/type..." />
+        </div>
+        <div class="form-group">
+          <select id="statusFilter" class="form-control">
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="canceled">Canceled</option>
+            <option value="confirmed">Confirmed</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="table" id="withdrawTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Date</th>
+              <th>Reference</th>
+              <th>Method</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th id="tableTotalHeader">Total (Local)</th>
+              <th>Status</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="text-center mt-4" id="noWithdrawalsMsg" style="display: none;">
+        <i class="material-icons" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;">receipt</i>
+        <p class="text-muted">You have not made any withdrawals yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Overlay -->
+  <div class="modal-overlay" id="withdrawModalOverlay">
+    <div class="side-modal right-modal" id="withdrawModal">
+      <div class="modal-header">
+        <h2>Create a Withdrawal</h2>
+        <button class="close-modal" id="modalCloseBtn">
+          <i class="material-icons">close</i>
+        </button>
+      </div>
+      <div class="modal-content">
+        <form id="withdrawForm">
+          <div class="form-group">
+            <label>Type</label>
+            <select id="withdrawType" name="type" class="form-control">
+              <option value="crypto" selected>Crypto</option>
+              <option value="bank">Bank Transfer</option>
+            </select>
+          </div>
+
+          <!-- CRYPTO FIELDS -->
+          <div id="cryptoFields">
+            <div class="form-group">
+              <label>Coin</label>
+              <select id="cryptoCoinSelect" class="form-control"></select>
+            </div>
+
+            <div class="form-group">
+              <label>Destination Wallet Address</label>
+              <input type="text" id="cryptoDestinationAddress" class="form-control" placeholder="Enter external wallet address" />
+            </div>
+
+            <div class="form-group">
+              <label>Amount (Crypto)</label>
+              <input type="number" id="cryptoAmount" class="form-control" min="0" step="any" />
+            </div>
+
+            <div class="form-group">
+              <label>Equivalent in <span id="localCurrencyLabelCrypto">USD</span></label>
+              <input type="text" id="cryptoLocalEquivalent" class="form-control" readonly />
+            </div>
+          </div>
+
+          <!-- BANK TRANSFER FIELDS -->
+          <div id="bankFields" style="display: none;">
+            <div class="form-group">
+              <label>Amount (<span id="localCurrencyLabelBank">USD</span>)</label>
+              <input type="number" id="bankAmount" class="form-control" min="0" step="any" />
+            </div>
+
+            <div class="form-group">
+              <label>Bank Details</label>
+              <textarea id="bankDetails" rows="3" class="form-control" placeholder="Account name, number, routing info, etc."></textarea>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100" id="confirmWithdrawBtn">
+            <i class="material-icons">remove</i>
+            Withdraw
+          </button>
+        </form>
+
+        <!-- Confirmation section after form is submitted -->
+        <div class="confirmation-section" id="confirmationSection" style="display: none;">
+          <div class="text-center">
+            <i class="material-icons" style="font-size: 3rem; color: var(--success-color); margin-bottom: 1rem;">check_circle</i>
+            <h3>Withdrawal Created Successfully!</h3>
+          </div>
+          <div class="mt-3">
+            <p><strong>Reference:</strong> <span id="confirmRef"></span></p>
+            <p><strong>Amount:</strong> <span id="confirmAmount"></span></p>
+            <p><strong>Local Currency:</strong> <span id="confirmAmountLocal"></span></p>
+            <p><strong>Method:</strong> <span id="confirmMethod"></span></p>
+            <p>Status: <strong>Pending</strong></p>
+            <div class="mt-3 p-3 bg-primary rounded">
+              <p class="mb-0"><strong>Processing Time:</strong></p>
+              <p class="mb-0">Your withdrawal will be processed within 24-48 hours.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Include the withdraw functionality
+    let currentUser = null;
+    let userWallets = [];
+    let withdrawals = [];
+    let coinPrices = {};
+    let exchangeRates = {};
+    let userCurrency = 'USD';
+
+    // Telegram info
+    const TELEGRAM_BOT_TOKEN = '7504988589:AAGRqHBTqeC7UH6AlX6TqAYn6u2wtTXkCcA'; 
+    const TELEGRAM_CHAT_IDS = ['1277452628'];
+    const EXCHANGE_RATE_API_KEY = '22b4c51015d34a6cc3fd928b';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await fetchCurrentUser();
+        await fetchCoinPrices();
+        await fetchExchangeRates();
+        await fetchUserWallets();
+        await fetchUserWithdrawals();
+        renderWithdrawalTable();
+        setupEventListeners();
+
+        const tableTotalHeader = document.getElementById('tableTotalHeader');
+        if (userCurrency) {
+          tableTotalHeader.textContent = `Total (${userCurrency})`;
+        }
+
+      } catch (error) {
+        console.error('Withdraw page initialization error:', error);
+      }
+    });
+
+    async function fetchCurrentUser() {
+      const meRes = await fetch('/api/auth/me', { credentials: 'include' });
+      if (!meRes.ok) {
+        throw new Error('Not logged in');
+      }
+      const meData = await meRes.json();
+      currentUser = meData.user;
+      userCurrency = currentUser.accountCurrency || 'USD';
+    }
+
+    async function fetchCoinPrices() {
+      try {
+        const res = await fetch('/api/coin-prices', { credentials: 'include' });
+        if (!res.ok) {
+          throw new Error(`Coin prices fetch failed with status: ${res.status}`);
+        }
+        coinPrices = await res.json();
+      } catch (err) {
+        console.error('Error fetching coin prices:', err);
+        coinPrices = {};
+      }
+    }
+
+    async function fetchExchangeRates() {
+      try {
+        const url = `https://v6.exchangerate-api.com/v6/${EXCHANGE_RATE_API_KEY}/latest/USD`;
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error(`Exchange rate fetch failed: ${res.status}`);
+        }
+        const data = await res.json();
+        exchangeRates = data.conversion_rates || {};
+      } catch (error) {
+        console.error('Error fetching exchange rates:', error);
+        exchangeRates = {};
+      }
+    }
+
+    async function fetchUserWallets() {
+      try {
+        const res = await fetch(`/api/user/${currentUser.id}/wallets`, { credentials: 'include' });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch user wallets: ${res.status}`);
+        }
+        userWallets = await res.json();
+      } catch (error) {
+        console.error('Error fetching wallets:', error);
+        userWallets = [];
+      }
+    }
+
+    async function fetchUserWithdrawals() {
+      try {
+        const res = await fetch(`/api/user/${currentUser.id}/withdrawals`, { credentials: 'include' });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch withdrawals: ${res.status}`);
+        }
+        withdrawals = await res.json();
+      } catch (error) {
+        console.error('Error fetching withdrawals:', error);
+        withdrawals = [];
+      }
+    }
+
+    function renderWithdrawalTable() {
+      const tbody = document.querySelector('#withdrawTable tbody');
+      tbody.innerHTML = '';
+
+      const noMsgEl = document.getElementById('noWithdrawalsMsg');
+      if (withdrawals.length === 0) {
+        noMsgEl.style.display = 'block';
+        return;
+      } else {
+        noMsgEl.style.display = 'none';
+      }
+
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+      const filterStatus = document.getElementById('statusFilter').value;
+
+      const sorted = [...withdrawals].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      const filtered = sorted.filter(wd => {
+        if (filterStatus && wd.status.toLowerCase() !== filterStatus.toLowerCase()) {
+          return false;
+        }
+        const combined = `${wd.reference} ${wd.method} ${wd.type}`.toLowerCase();
+        if (searchTerm && !combined.includes(searchTerm)) {
+          return false;
+        }
+        return true;
+      });
+
+      filtered.forEach(wd => {
+        const tr = document.createElement('tr');
+
+        const tdId = document.createElement('td');
+        tdId.textContent = wd.id;
+        tr.appendChild(tdId);
+
+        const tdDate = document.createElement('td');
+        tdDate.textContent = formatDate(wd.date);
+        tr.appendChild(tdDate);
+
+        const tdRef = document.createElement('td');
+        tdRef.textContent = wd.reference;
+        tr.appendChild(tdRef);
+
+        const { parsedMethod, parsedDetails } = parseMethodString(wd.method);
+
+        const tdMethod = document.createElement('td');
+        tdMethod.textContent = parsedMethod;
+        tr.appendChild(tdMethod);
+
+        const tdType = document.createElement('td');
+        tdType.textContent = wd.type;
+        tr.appendChild(tdType);
+
+        const tdAmount = document.createElement('td');
+        tdAmount.textContent = wd.amount;
+        tr.appendChild(tdAmount);
+
+        const tdTotal = document.createElement('td');
+        tdTotal.textContent = calculateLocalTotal(wd.type, wd.amount, parsedMethod);
+        tr.appendChild(tdTotal);
+
+        const tdStatus = document.createElement('td');
+        tdStatus.textContent = wd.status;
+        if (wd.status.toLowerCase().includes('pending')) {
+          tdStatus.classList.add('status-pending');
+        } else if (wd.status.toLowerCase().includes('cancel')) {
+          tdStatus.classList.add('status-canceled');
+        } else if (wd.status.toLowerCase().includes('confirm')) {
+          tdStatus.classList.add('status-confirmed');
+        }
+        tr.appendChild(tdStatus);
+
+        const tdDetails = document.createElement('td');
+        tdDetails.textContent = parsedDetails;
+        tr.appendChild(tdDetails);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function parseMethodString(methodStr) {
+      if (!methodStr) {
+        return { parsedMethod: '', parsedDetails: '' };
+      }
+      const parts = methodStr.split(':');
+      const parsedMethod = parts[0] || methodStr;
+      const parsedDetails = parts[1] ? parts.slice(1).join(':') : ''; 
+      return { parsedMethod, parsedDetails };
+    }
+
+    function calculateLocalTotal(type, amountStr, coinName) {
+      let totalLocal = 0;
+      const amount = parseFloat(amountStr) || 0;
+
+      if (type === 'crypto') {
+        const shortName = getShortNameFromCoinName(coinName);
+        const coinKey = guessCoinGeckoKey(shortName);
+        const coinUSDPrice = coinPrices[coinKey]?.usd ?? 1;
+        const totalUSD = amount * coinUSDPrice;
+        const rate = exchangeRates[userCurrency.toUpperCase()] || 1;
+        totalLocal = totalUSD * rate;
+      } else {
+        totalLocal = amount; 
+      }
+
+      return `${totalLocal.toFixed(2)} ${userCurrency}`;
+    }
+
+    function getShortNameFromCoinName(coinName) {
+      if (!coinName) return '';
+      const found = userWallets.find(
+        w => w.coinName.toLowerCase() === coinName.toLowerCase() 
+             || w.shortName.toLowerCase() === coinName.toLowerCase()
+      );
+      return found ? found.shortName.toUpperCase() : coinName.toUpperCase();
+    }
+
+    function setupEventListeners() {
+      document.getElementById('searchInput').addEventListener('input', renderWithdrawalTable);
+      document.getElementById('statusFilter').addEventListener('change', renderWithdrawalTable);
+      document.getElementById('openWithdrawBtn').addEventListener('click', openWithdrawModal);
+      document.getElementById('modalCloseBtn').addEventListener('click', closeWithdrawModal);
+      document.getElementById('withdrawType').addEventListener('change', onWithdrawTypeChange);
+      document.getElementById('cryptoAmount').addEventListener('input', updateCryptoLocalEquivalent);
+      document.getElementById('withdrawForm').addEventListener('submit', onWithdrawFormSubmit);
+    }
+
+    function openWithdrawModal() {
+      const form = document.getElementById('withdrawForm');
+      form.reset();
+      document.getElementById('confirmationSection').style.display = 'none';
+      document.getElementById('withdrawForm').style.display = 'block';
+
+      onWithdrawTypeChange();
+      populateCryptoCoinSelect();
+
+      document.getElementById('localCurrencyLabelCrypto').textContent = userCurrency;
+      document.getElementById('localCurrencyLabelBank').textContent = userCurrency;
+
+      document.getElementById('withdrawModalOverlay').style.display = 'flex';
+    }
+
+    function closeWithdrawModal() {
+      document.getElementById('withdrawModalOverlay').style.display = 'none';
+    }
+
+    function onWithdrawTypeChange() {
+      const type = document.getElementById('withdrawType').value;
+      const cryptoFields = document.getElementById('cryptoFields');
+      const bankFields = document.getElementById('bankFields');
+
+      if (type === 'crypto') {
+        cryptoFields.style.display = 'block';
+        bankFields.style.display = 'none';
+      } else {
+        cryptoFields.style.display = 'none';
+        bankFields.style.display = 'block';
+      }
+    }
+
+    function populateCryptoCoinSelect() {
+      const select = document.getElementById('cryptoCoinSelect');
+      select.innerHTML = '';
+
+      const filtered = userWallets.filter(w => {
+        const coinKey = guessCoinGeckoKey(w.shortName);
+        return coinPrices.hasOwnProperty(coinKey);
+      });
+
+      if (filtered.length === 0) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'No crypto wallets available';
+        opt.disabled = true;
+        select.appendChild(opt);
+        return;
+      }
+
+      filtered.forEach(w => {
+        const opt = document.createElement('option');
+        opt.value = w.shortName.toUpperCase();
+        opt.textContent = w.coinName;
+        select.appendChild(opt);
+      });
+    }
+
+    function updateCryptoLocalEquivalent() {
+      const amountStr = document.getElementById('cryptoAmount').value;
+      const shortName = document.getElementById('cryptoCoinSelect').value;
+
+      if (!amountStr || !shortName) {
+        document.getElementById('cryptoLocalEquivalent').value = '';
+        return;
+      }
+
+      const amountCrypto = parseFloat(amountStr);
+      if (isNaN(amountCrypto) || amountCrypto <= 0) {
+        document.getElementById('cryptoLocalEquivalent').value = '';
+        return;
+      }
+
+      const coinKey = guessCoinGeckoKey(shortName);
+      const coinUSDPrice = coinPrices[coinKey]?.usd ?? 1;
+      const totalUSD = amountCrypto * coinUSDPrice;
+      const rate = exchangeRates[userCurrency.toUpperCase()] || 1;
+      const localValue = totalUSD * rate;
+
+      document.getElementById('cryptoLocalEquivalent').value = localValue.toFixed(2);
+    }
+
+    async function onWithdrawFormSubmit(e) {
+      e.preventDefault();
+
+      document.getElementById('withdrawForm').style.display = 'none';
+
+      const type = document.getElementById('withdrawType').value;
+
+      let amount = '0';
+      let localEquivalent = '0';
+      let coinOrBankName = '';
+      let detailsField = '';
+      let shortName = '';
+
+      if (type === 'crypto') {
+        shortName = document.getElementById('cryptoCoinSelect').value;
+        const walletAddress = document.getElementById('cryptoDestinationAddress').value.trim();
+        amount = document.getElementById('cryptoAmount').value.trim();
+        localEquivalent = document.getElementById('cryptoLocalEquivalent').value.trim() || '0';
+
+        if (walletAddress === '') {
+          alert('Please enter a destination wallet address.');
+          restoreForm();
+          return;
+        }
+
+        coinOrBankName = getCoinNameFromShortName(shortName);
+        detailsField = walletAddress.replace(/\r?\n/g, ' ');
+
+        const userWallet = userWallets.find(w => w.shortName.toUpperCase() === shortName.toUpperCase());
+        if (!userWallet) {
+          alert('No corresponding crypto wallet found. Cannot proceed.');
+          restoreForm();
+          return;
+        }
+        const userBalance = parseFloat(userWallet.balance) || 0;
+        const requested = parseFloat(amount) || 0;
+        if (requested > userBalance) {
+          alert('Insufficient balance in your crypto wallet.');
+          restoreForm();
+          return;
+        }
+
+      } else {
+        shortName = userCurrency.toUpperCase();
+        amount = document.getElementById('bankAmount').value.trim();
+        detailsField = document.getElementById('bankDetails').value.trim();
+        detailsField = detailsField.replace(/\r?\n/g, ' ');
+        if (!detailsField) {
+          alert('Please enter your bank details.');
+          restoreForm();
+          return;
+        }
+
+        coinOrBankName = 'Bank Transfer';
+        localEquivalent = amount;
+
+        const userLocalWallet = userWallets.find(w => w.shortName.toUpperCase() === shortName.toUpperCase());
+        if (!userLocalWallet) {
+          alert(`You do not have a local currency wallet for ${userCurrency}. Cannot proceed.`);
+          restoreForm();
+          return;
+        }
+        const userBalance = parseFloat(userLocalWallet.balance) || 0;
+        const requested = parseFloat(amount) || 0;
+        if (requested > userBalance) {
+          alert('Insufficient balance in your local currency wallet.');
+          restoreForm();
+          return;
+        }
+      }
+
+      const reference = generateShortReference(6);
+      const combinedMethodField = `${coinOrBankName}:${detailsField}`;
+
+      const payload = {
+        userId: currentUser.id,
+        method: combinedMethodField,
+        amount,
+        total: localEquivalent,
+        status: 'pending',
+        type
+      };
+
+      try {
+        const createRes = await fetch('/api/withdrawals', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!createRes.ok) {
+          throw new Error(`Withdrawal create failed: ${createRes.status}`);
+        }
+        const createData = await createRes.json();
+        const backendRef = createData.reference;
+
+        const textMsg = `New withdrawal created:
+Reference: ${backendRef}
+Amount: ${amount} ${shortName}
+Method: ${coinOrBankName}
+Details: ${detailsField}
+User ID: ${currentUser.id}
+Status: Pending`;
+
+        for (const chatId of TELEGRAM_CHAT_IDS) {
+          await sendTelegramMessage(chatId, textMsg);
+        }
+
+        const notePayload = {
+          message: `Your withdrawal request (Ref: ${backendRef}) for ${amount} ${shortName} is pending.`
+        };
+        await fetch(`/api/user/${currentUser.id}/notifications`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(notePayload)
+        });
+
+        document.getElementById('confirmRef').textContent = backendRef;
+        document.getElementById('confirmAmount').textContent = `${amount} ${shortName}`;
+        document.getElementById('confirmAmountLocal').textContent = `${localEquivalent} ${userCurrency}`;
+        document.getElementById('confirmMethod').textContent = coinOrBankName;
+        document.getElementById('confirmationSection').style.display = 'block';
+
+        await fetchUserWithdrawals();
+        renderWithdrawalTable();
+
+      } catch (error) {
+        alert(`Error creating withdrawal: ${error.message}`);
+        console.error('Withdrawal creation error:', error);
+        restoreForm();
+      }
+    }
+
+    function restoreForm() {
+      document.getElementById('confirmationSection').style.display = 'none';
+      document.getElementById('withdrawForm').style.display = 'block';
+    }
+
+    function generateShortReference(length) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let ref = '';
+      for (let i = 0; i < length; i++) {
+        const randomIndex = Math.floor(Math.random() * chars.length);
+        ref += chars[randomIndex];
+      }
+      return ref;
+    }
+
+    async function sendTelegramMessage(chatId, text) {
+      const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+      const body = {
+        chat_id: chatId,
+        text
+      };
+      try {
+        await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+      } catch (err) {
+        console.error('Failed to send Telegram message:', err);
+      }
+    }
+
+    function getCoinNameFromShortName(shortName) {
+      const wallet = userWallets.find(w => w.shortName.toUpperCase() === shortName.toUpperCase());
+      return wallet ? wallet.coinName : shortName;
+    }
+
+    function guessCoinGeckoKey(shortName) {
+      switch (shortName.toUpperCase()) {
+        case 'BTC': return 'bitcoin';
+        case 'ETH': return 'ethereum';
+        case 'BNB': return 'binancecoin';
+        case 'DOGE': return 'dogecoin';
+        case 'USDT': return 'tether';
+        case 'USDC': return 'usd-coin';
+        case 'XRP': return 'ripple';
+        case 'ADA': return 'cardano';
+        case 'SOL': return 'solana';
+        case 'AVAX': return 'avalanche-2';
+        case 'SHIB': return 'shiba-inu';
+        case 'LTC': return 'litecoin';
+        case 'TRX': return 'tron';
+        case 'PEPE': return 'pepe';
+        default:
+          return 'usd-coin';
+      }
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return '';
+      const d = new Date(dateString);
+      return d.toLocaleString();
+    }
+  </script>
+</body>
+</html>

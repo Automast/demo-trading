@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Page Not Found - YourApp</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <header class="header">
+    <a href="/" class="logo">
+      <img src="https://via.placeholder.com/32x32/00bcd4/ffffff?text=L" alt="Logo">
+      <span>YourApp</span>
+    </a>
+    <div class="header-actions">
+      <a href="/login/" class="btn btn-secondary">Login</a>
+      <a href="/dashboard/" class="btn btn-primary">Dashboard</a>
+    </div>
+  </header>
+
+  <main style="margin-top: 70px; min-height: calc(100vh - 70px); display: flex; align-items: center; justify-content: center; padding: 2rem;">
+    <div class="text-center" style="max-width: 500px;">
+      <div style="font-size: 8rem; color: var(--accent-color); margin-bottom: 1rem; font-weight: 700;">
+        404
+      </div>
+      
+      <h1 style="font-size: 2rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-color);">
+        Page Not Found
+      </h1>
+      
+      <p style="color: var(--text-secondary); margin-bottom: 2rem; font-size: 1.1rem; line-height: 1.6;">
+        The page you're looking for doesn't exist. It might have been moved, deleted, or you entered the wrong URL.
+      </p>
+      
+      <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <a href="/" class="btn btn-primary">
+          <i class="material-icons">home</i>
+          Go Home
+        </a>
+        <a href="/dashboard/" class="btn btn-secondary">
+          <i class="material-icons">dashboard</i>
+          Dashboard
+        </a>
+      </div>
+      
+      <div style="margin-top: 3rem; padding: 1.5rem; background: var(--secondary-bg); border-radius: 12px; border: 1px solid var(--border-color);">
+        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-color);">
+          Quick Links
+        </h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem;">
+          <a href="/login/" class="text-accent" style="text-decoration: none; padding: 0.5rem; border-radius: 8px; transition: background 0.3s;">
+            <i class="material-icons" style="display: block; margin-bottom: 0.5rem;">login</i>
+            Login
+          </a>
+          <a href="/signup/" class="text-accent" style="text-decoration: none; padding: 0.5rem; border-radius: 8px; transition: background 0.3s;">
+            <i class="material-icons" style="display: block; margin-bottom: 0.5rem;">person_add</i>
+            Sign Up
+          </a>
+          <a href="/dashboard/" class="text-accent" style="text-decoration: none; padding: 0.5rem; border-radius: 8px; transition: background 0.3s;">
+            <i class="material-icons" style="display: block; margin-bottom: 0.5rem;">dashboard</i>
+            Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Check if user is logged in and update header
+    (async function checkAuth() {
+      try {
+        const response = await fetch('/api/auth/me', { 
+          credentials: 'include' 
+        });
+        
+        if (response.ok) {
+          // User is logged in, show dashboard link
+          const headerActions = document.querySelector('.header-actions');
+          headerActions.innerHTML = '<a href="/dashboard/" class="btn btn-primary">Go to Dashboard</a>';
+        }
+      } catch (error) {
+        // User not logged in, keep current header
+      }
+    })();
+  </script>
+
+  <style>
+    .text-accent {
+      color: var(--accent-color);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    
+    .text-accent:hover {
+      background: var(--hover-bg);
+    }
+    
+    @media (max-width: 768px) {
+      main {
+        padding: 1rem !important;
+      }
+      
+      div[style*="font-size: 8rem"] {
+        font-size: 5rem !important;
+      }
+      
+      h1 {
+        font-size: 1.5rem !important;
+      }
+      
+      .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+      }
+    }
+  </style>
+</body>
+</html>

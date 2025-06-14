@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Account - YourApp</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <header class="header" style="position: relative; z-index: 100;">
+    <div class="logo">
+      <img src="https://via.placeholder.com/32x32/00bcd4/ffffff?text=L" alt="Logo" />
+      <span>YourApp</span>
+    </div>
+    <a href="/" class="auth-link">Back to homepage</a>
+  </header>
+
+  <main style="margin-top: 70px; display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 70px); padding: 2rem 0;">
+    <div class="auth-container" style="max-width: 460px;">
+      <h1 class="auth-title">Create a new account</h1>
+
+      <!-- Error Display -->
+      <div id="errorBox" class="error-message" style="display: none;"></div>
+
+      <!-- SIGNUP FORM -->
+      <form id="signup-form">
+        <!-- FIRST NAME -->
+        <div class="input-group">
+          <input
+            type="text"
+            name="firstName"
+            class="input-field"
+            placeholder="First name"
+            required
+          />
+        </div>
+
+        <!-- LAST NAME -->
+        <div class="input-group">
+          <input
+            type="text"
+            name="lastName"
+            class="input-field"
+            placeholder="Last name"
+            required
+          />
+        </div>
+
+        <!-- EMAIL -->
+        <div class="input-group">
+          <input
+            type="email"
+            name="email"
+            class="input-field"
+            placeholder="Email address"
+            required
+          />
+        </div>
+
+        <!-- COUNTRY -->
+        <div class="input-group">
+          <div class="select-container">
+            <select name="country" class="input-field" required>
+              <option value="" disabled selected>Select your country</option>
+              <option value="US">United States</option>
+              <option value="UK">United Kingdom</option>
+              <option value="CA">Canada</option>
+              <option value="AU">Australia</option>
+              <option value="DE">Germany</option>
+              <option value="FR">France</option>
+              <option value="ES">Spain</option>
+              <option value="IT">Italy</option>
+              <option value="NL">Netherlands</option>
+              <option value="JP">Japan</option>
+              <option value="KR">South Korea</option>
+              <option value="SG">Singapore</option>
+              <option value="IN">India</option>
+              <option value="BR">Brazil</option>
+              <option value="MX">Mexico</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- PHONE -->
+        <div class="input-group">
+          <div class="phone-input">
+            <select
+              name="countryCode"
+              class="input-field country-code"
+              required
+            >
+              <option value="+1">+1 (US)</option>
+              <option value="+44">+44 (UK)</option>
+              <option value="+1">+1 (CA)</option>
+              <option value="+61">+61 (AU)</option>
+              <option value="+49">+49 (DE)</option>
+              <option value="+33">+33 (FR)</option>
+              <option value="+34">+34 (ES)</option>
+              <option value="+39">+39 (IT)</option>
+              <option value="+31">+31 (NL)</option>
+              <option value="+81">+81 (JP)</option>
+              <option value="+82">+82 (KR)</option>
+              <option value="+65">+65 (SG)</option>
+              <option value="+91">+91 (IN)</option>
+              <option value="+55">+55 (BR)</option>
+              <option value="+52">+52 (MX)</option>
+            </select>
+            <input
+              type="tel"
+              name="phoneNumber"
+              class="input-field phone-number"
+              placeholder="Phone number"
+              required
+            />
+          </div>
+        </div>
+
+        <!-- PASSWORD -->
+        <div class="input-group">
+          <div class="password-container">
+            <input
+              type="password"
+              name="password"
+              class="input-field"
+              placeholder="Password (min. of 6 characters)"
+              required
+              minlength="6"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              onclick="togglePassword(this)"
+            >
+              <i class="material-icons">visibility</i>
+            </button>
+          </div>
+        </div>
+
+        <!-- REPEAT PASSWORD -->
+        <div class="input-group">
+          <div class="password-container">
+            <input
+              type="password"
+              name="confirmPassword"
+              class="input-field"
+              placeholder="Repeat your password"
+              required
+              minlength="6"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              onclick="togglePassword(this)"
+            >
+              <i class="material-icons">visibility</i>
+            </button>
+          </div>
+        </div>
+
+        <!-- ACCOUNT CURRENCY -->
+        <div class="input-group">
+          <div class="select-container">
+            <select name="accountCurrency" class="input-field" required>
+              <option value="" disabled selected>Account currency</option>
+              <option value="USD">USD - US Dollar</option>
+              <option value="EUR">EUR - Euro</option>
+              <option value="GBP">GBP - British Pound</option>
+              <option value="CAD">CAD - Canadian Dollar</option>
+              <option value="AUD">AUD - Australian Dollar</option>
+              <option value="JPY">JPY - Japanese Yen</option>
+              <option value="CHF">CHF - Swiss Franc</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- REFERRAL TOGGLE -->
+        <span class="referrer-toggle" id="toggle-referrer">Have a referral code?</span>
+
+        <!-- REFERRAL CODE SECTION -->
+        <div id="referrer-section" class="input-group" style="display: none;">
+          <input
+            type="text"
+            name="referrerCode"
+            class="input-field"
+            placeholder="Enter referral code"
+          />
+        </div>
+
+        <div class="auth-links">
+          <a href="/login/" class="auth-link">Already have an account?</a>
+        </div>
+
+        <!-- SUBMIT BUTTON -->
+        <button type="submit" class="auth-button">Create account</button>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    // Check if user is already logged in
+    (async function checkIfLoggedIn() {
+      try {
+        const res = await fetch('/api/auth/me', {
+          method: 'GET',
+          credentials: 'include'
+        });
+        if (res.ok) {
+          window.location.href = '/dashboard/';
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+      }
+    })();
+
+    // Toggle password visibility
+    function togglePassword(button) {
+      const input = button.previousElementSibling;
+      const icon = button.querySelector('i');
+
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.textContent = 'visibility_off';
+      } else {
+        input.type = 'password';
+        icon.textContent = 'visibility';
+      }
+    }
+
+    // Toggle the referral code input
+    const toggleReferrer = document.getElementById('toggle-referrer');
+    const referrerSection = document.getElementById('referrer-section');
+    let isReferrerVisible = false;
+
+    toggleReferrer.addEventListener('click', function () {
+      isReferrerVisible = !isReferrerVisible;
+      referrerSection.style.display = isReferrerVisible ? 'block' : 'none';
+      toggleReferrer.textContent = isReferrerVisible
+        ? 'Hide referral code'
+        : 'Have a referral code?';
+    });
+
+    // Form submission
+    const signupForm = document.getElementById('signup-form');
+    const errorBox = document.getElementById('errorBox');
+
+    signupForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      errorBox.style.display = 'none';
+      errorBox.textContent = '';
+
+      const formData = new FormData(signupForm);
+      const firstName = formData.get('firstName').trim();
+      const lastName = formData.get('lastName').trim();
+      const email = formData.get('email').trim();
+      const country = formData.get('country');
+      const countryCode = formData.get('countryCode');
+      const phoneNumber = formData.get('phoneNumber').trim();
+      const password = formData.get('password');
+      const confirmPassword = formData.get('confirmPassword');
+      const accountCurrency = formData.get('accountCurrency');
+      const referrerCode = (formData.get('referrerCode') || '').trim();
+
+      if (password !== confirmPassword) {
+        showError('Passwords do not match!');
+        return;
+      }
+
+      const phone = `${countryCode} ${phoneNumber}`;
+
+      const signupPayload = {
+        firstName,
+        lastName,
+        email,
+        phone,
+        country,
+        password,
+        accountCurrency
+      };
+
+      if (referrerCode) {
+        signupPayload.referrerCode = referrerCode;
+      }
+
+      try {
+        const signupRes = await fetch('/api/auth/signup', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(signupPayload)
+        });
+
+        const signupData = await signupRes.json();
+
+        if (!signupRes.ok) {
+          console.error('Signup error:', signupData);
+          const errorMsg = signupData.error || signupData.message || 'Signup failed. Please try again.';
+          showError(errorMsg);
+          return;
+        }
+
+        const signinPayload = { email, password };
+        const signinRes = await fetch('/api/auth/signin', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(signinPayload)
+        });
+
+        const signinData = await signinRes.json();
+
+        if (!signinRes.ok) {
+          console.error('Signin error:', signinData);
+          const errorMsg = signinData.error || signinData.message || 'Login failed. Please try again.';
+          showError(errorMsg);
+          return;
+        }
+
+        window.location.href = '/dashboard/';
+
+      } catch (error) {
+        console.error('Network/Server error:', error);
+        showError('Something went wrong. Please try again.');
+      }
+    });
+
+    function showError(message) {
+      errorBox.textContent = message;
+      errorBox.style.display = 'block';
+    }
+  </script>
+
+  <style>
+    .referrer-toggle {
+      cursor: pointer;
+      color: var(--accent-color);
+      font-size: 0.875rem;
+      margin-bottom: 0.5rem;
+      display: inline-block;
+      text-decoration: underline;
+      transition: opacity 0.3s;
+    }
+    
+    .referrer-toggle:hover {
+      opacity: 0.8;
+    }
+  </style>
+</body>
+</html>

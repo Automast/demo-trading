@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YourApp - Trading Platform</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+  <header class="header" style="position: relative; z-index: 100;">
+    <div class="logo">
+      <img src="https://via.placeholder.com/32x32/00bcd4/ffffff?text=L" alt="Logo" />
+      <span>YourApp</span>
+    </div>
+    <div class="header-actions">
+      <a href="/login/" class="btn btn-secondary">Login</a>
+      <a href="/signup/" class="btn btn-primary">Sign Up</a>
+    </div>
+  </header>
+
+  <main style="margin-top: 70px;">
+    <!-- Hero Section -->
+    <section class="hero" style="padding: 4rem 2rem; text-align: center; background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 100%);">
+      <div style="max-width: 800px; margin: 0 auto;">
+        <h1 style="font-size: 3rem; font-weight: 700; margin-bottom: 1rem; background: linear-gradient(135deg, var(--accent-color), #00acc1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+          The Future of Trading
+        </h1>
+        <p style="font-size: 1.25rem; color: var(--text-secondary); margin-bottom: 2rem; line-height: 1.6;">
+          Trade cryptocurrencies, stocks, and more with our advanced platform. 
+          Start your journey with professional tools and real-time market data.
+        </p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+          <a href="/signup/" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">
+            <i class="material-icons">trending_up</i>
+            Start Trading
+          </a>
+          <a href="/login/" class="btn btn-secondary" style="padding: 1rem 2rem; font-size: 1.1rem;">
+            <i class="material-icons">login</i>
+            Login
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section style="padding: 4rem 2rem; max-width: 1200px; margin: 0 auto;">
+      <h2 style="text-align: center; font-size: 2.5rem; font-weight: 600; margin-bottom: 3rem; color: var(--text-color);">
+        Why Choose YourApp?
+      </h2>
+      
+      <div class="stats-grid" style="margin-bottom: 4rem;">
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="material-icons">security</i>
+          </div>
+          <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Bank-Grade Security</h3>
+          <p style="color: var(--text-secondary);">Your funds and data are protected with enterprise-level security measures.</p>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="material-icons">speed</i>
+          </div>
+          <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Lightning Fast</h3>
+          <p style="color: var(--text-secondary);">Execute trades instantly with our high-performance trading engine.</p>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="material-icons">analytics</i>
+          </div>
+          <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Advanced Analytics</h3>
+          <p style="color: var(--text-secondary);">Professional trading tools and real-time market analysis.</p>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="material-icons">support_agent</i>
+          </div>
+          <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">24/7 Support</h3>
+          <p style="color: var(--text-secondary);">Get help whenever you need it with our dedicated support team.</p>
+        </div>
+      </div>
+
+      <!-- Markets Preview -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Live Market Data</h3>
+          <p style="color: var(--text-secondary); font-size: 0.9rem;">Real-time prices updated every second</p>
+        </div>
+        <div class="card-body">
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Asset</th>
+                  <th>Price</th>
+                  <th>24h Change</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <div style="width: 24px; height: 24px; background: #f7931a; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.7rem;">₿</div>
+                      Bitcoin (BTC)
+                    </div>
+                  </td>
+                  <td>$45,234.56</td>
+                  <td style="color: var(--success-color);">+2.34%</td>
+                  <td>
+                    <a href="/signup/" class="btn btn-primary btn-sm">Trade</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <div style="width: 24px; height: 24px; background: #627eea; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.7rem;">Ξ</div>
+                      Ethereum (ETH)
+                    </div>
+                  </td>
+                  <td>$2,856.78</td>
+                  <td style="color: var(--success-color);">+1.89%</td>
+                  <td>
+                    <a href="/signup/" class="btn btn-primary btn-sm">Trade</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <div style="width: 24px; height: 24px; background: #00d4aa; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.7rem;">$</div>
+                      Tether (USDT)
+                    </div>
+                  </td>
+                  <td>$1.00</td>
+                  <td style="color: var(--text-secondary);">0.00%</td>
+                  <td>
+                    <a href="/signup/" class="btn btn-primary btn-sm">Trade</a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section style="padding: 4rem 2rem; text-align: center; background: var(--secondary-bg); margin: 2rem 0;">
+      <div style="max-width: 600px; margin: 0 auto;">
+        <h2 style="font-size: 2rem; font-weight: 600; margin-bottom: 1rem;">Ready to Get Started?</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+          Join thousands of traders who trust YourApp for their trading needs. 
+          Sign up today and get access to premium features.
+        </p>
+        <a href="/signup/" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">
+          <i class="material-icons">account_circle</i>
+          Create Free Account
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer style="padding: 2rem; text-align: center; border-top: 1px solid var(--border-color);">
+    <div style="max-width: 800px; margin: 0 auto;">
+      <div class="logo" style="justify-content: center; margin-bottom: 1rem;">
+        <img src="https://via.placeholder.com/32x32/00bcd4/ffffff?text=L" alt="Logo" />
+        <span>YourApp</span>
+      </div>
+      <p style="color: var(--text-secondary); font-size: 0.9rem;">
+        © 2025 YourApp. All rights reserved. Trading involves risk and may not be suitable for all investors.
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    // Check if user is already logged in and redirect to dashboard
+    (async function checkAuth() {
+      try {
+        const response = await fetch('/api/auth/me', { 
+          credentials: 'include' 
+        });
+        
+        if (response.ok) {
+          // User is logged in, redirect to dashboard
+          window.location.href = '/dashboard/';
+        }
+      } catch (error) {
+        // User not logged in, stay on homepage
+        console.log('User not authenticated');
+      }
+    })();
+
+    // Animate stats on scroll
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.animation = 'fadeIn 0.6s ease-out forwards';
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll('.stat-card').forEach(card => {
+      observer.observe(card);
+    });
+  </script>
+
+  <style>
+    .hero {
+      background: linear-gradient(135deg, var(--primary-bg) 0%, var(--secondary-bg) 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="%2300bcd4" opacity="0.1"/><circle cx="80" cy="40" r="1" fill="%2300bcd4" opacity="0.2"/><circle cx="50" cy="70" r="1.5" fill="%2300bcd4" opacity="0.1"/></svg>');
+      animation: float 20s infinite linear;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0) rotate(0deg); }
+      100% { transform: translateY(-100px) rotate(360deg); }
+    }
+
+    .btn-sm {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2rem !important;
+      }
+      
+      .hero p {
+        font-size: 1rem !important;
+      }
+
+      .hero .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
+  </style>
+</body>
+</html>

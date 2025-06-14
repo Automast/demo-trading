@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Widget</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="trading-widget">
+        <!-- Tabs -->
+        <div class="trade-tabs">
+            <button class="tab-btn active" data-tab="buy">Buy</button>
+            <button class="tab-btn" data-tab="sell">Sell</button>
+        </div>
+
+        <!-- Buy Tab -->
+        <div class="tab-content active" id="buy-tab">
+            <div class="trade-form">
+                <div class="form-group">
+                    <label>Type:</label>
+                    <select id="buy-type" class="form-control">
+                        <option value="crypto">Crypto</option>
+                        <option value="stocks">Stocks</option>
+                        <option value="forex">Forex</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Asset:</label>
+                    <div class="asset-selector">
+                        <img id="buy-asset-icon" src="" alt="" class="asset-icon">
+                        <select id="buy-asset" class="form-control">
+                            <option value="">Select Asset</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Amount:</label>
+                    <input type="number" id="buy-amount" class="form-control" placeholder="0.00" step="any" min="0">
+                </div>
+
+                <div class="balance-info">
+                    <div class="balance-item">
+                        <span class="label">Current <span id="buy-balance-currency">USD</span> balance:</span>
+                        <span class="value" id="buy-balance">0.00</span>
+                    </div>
+                    <div class="balance-item">
+                        <span class="label">Current <span id="buy-asset-name">BTC</span> price:</span>
+                        <span class="value" id="buy-asset-price">$0.00</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Stop Loss:</label>
+                    <input type="number" id="buy-stop-loss" class="form-control" placeholder="0.00" step="any" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label>Take Profit:</label>
+                    <input type="number" id="buy-take-profit" class="form-control" placeholder="0.00" step="any" min="0">
+                </div>
+
+                <div class="form-group" id="buy-leverage-group">
+                    <label>Leverage:</label>
+                    <div class="leverage-options">
+                        <button type="button" class="leverage-btn" data-leverage="5">5x</button>
+                        <button type="button" class="leverage-btn" data-leverage="50">50x</button>
+                        <button type="button" class="leverage-btn" data-leverage="250">250x</button>
+                        <button type="button" class="leverage-btn active" data-leverage="500">500x</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Duration:</label>
+                    <select id="buy-duration" class="form-control">
+                        <option value="2m">2 minutes</option>
+                        <option value="5m">5 minutes</option>
+                        <option value="10m">10 minutes</option>
+                        <option value="30m">30 minutes</option>
+                        <option value="1h">1 hour</option>
+                        <option value="2h">2 hours</option>
+                        <option value="4h">4 hours</option>
+                        <option value="6h">6 hours</option>
+                        <option value="8h">8 hours</option>
+                        <option value="10h">10 hours</option>
+                        <option value="20h">20 hours</option>
+                        <option value="1d">1 day</option>
+                        <option value="2d">2 days</option>
+                        <option value="3d">3 days</option>
+                        <option value="4d">4 days</option>
+                        <option value="5d">5 days</option>
+                        <option value="6d">6 days</option>
+                        <option value="1w">1 week</option>
+                        <option value="2w">2 weeks</option>
+                    </select>
+                </div>
+
+                <button type="button" class="trade-btn buy-btn" id="execute-buy">
+                    <span class="btn-text">Buy</span>
+                    <div class="loading-spinner" style="display: none;"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sell Tab -->
+        <div class="tab-content" id="sell-tab">
+            <div class="trade-form">
+                <div class="form-group">
+                    <label>Type:</label>
+                    <select id="sell-type" class="form-control">
+                        <option value="crypto">Crypto</option>
+                        <option value="stocks">Stocks</option>
+                        <option value="forex">Forex</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Asset:</label>
+                    <div class="asset-selector">
+                        <img id="sell-asset-icon" src="" alt="" class="asset-icon">
+                        <select id="sell-asset" class="form-control">
+                            <option value="">Select Asset</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Amount:</label>
+                    <input type="number" id="sell-amount" class="form-control" placeholder="0.00" step="any" min="0">
+                </div>
+
+                <div class="balance-info">
+                    <div class="balance-item">
+                        <span class="label">Current <span id="sell-balance-currency">BTC</span> balance:</span>
+                        <span class="value" id="sell-balance">0.00</span>
+                    </div>
+                    <div class="balance-item">
+                        <span class="label">Current <span id="sell-asset-name">BTC</span> price:</span>
+                        <span class="value" id="sell-asset-price">$0.00</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Stop Loss:</label>
+                    <input type="number" id="sell-stop-loss" class="form-control" placeholder="0.00" step="any" min="0">
+                </div>
+
+                <div class="form-group">
+                    <label>Take Profit:</label>
+                    <input type="number" id="sell-take-profit" class="form-control" placeholder="0.00" step="any" min="0">
+                </div>
+
+                <div class="form-group" id="sell-leverage-group">
+                    <label>Leverage:</label>
+                    <div class="leverage-options">
+                        <button type="button" class="leverage-btn" data-leverage="5">5x</button>
+                        <button type="button" class="leverage-btn" data-leverage="50">50x</button>
+                        <button type="button" class="leverage-btn" data-leverage="250">250x</button>
+                        <button type="button" class="leverage-btn active" data-leverage="500">500x</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Duration:</label>
+                    <select id="sell-duration" class="form-control">
+                        <option value="2m">2 minutes</option>
+                        <option value="5m">5 minutes</option>
+                        <option value="10m">10 minutes</option>
+                        <option value="30m">30 minutes</option>
+                        <option value="1h">1 hour</option>
+                        <option value="2h">2 hours</option>
+                        <option value="4h">4 hours</option>
+                        <option value="6h">6 hours</option>
+                        <option value="8h">8 hours</option>
+                        <option value="10h">10 hours</option>
+                        <option value="20h">20 hours</option>
+                        <option value="1d">1 day</option>
+                        <option value="2d">2 days</option>
+                        <option value="3d">3 days</option>
+                        <option value="4d">4 days</option>
+                        <option value="5d">5 days</option>
+                        <option value="6d">6 days</option>
+                        <option value="1w">1 week</option>
+                        <option value="2w">2 weeks</option>
+                    </select>
+                </div>
+
+                <button type="button" class="trade-btn sell-btn" id="execute-sell">
+                    <span class="btn-text">Sell</span>
+                    <div class="loading-spinner" style="display: none;"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error-message" id="error-message" style="display: none;">
+            <i class="material-icons">error</i>
+            <span>Trade execution failed. Please try again later.</span>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

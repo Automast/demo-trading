@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Server Error - YourApp</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <header class="header">
+    <a href="/" class="logo">
+      <img src="https://via.placeholder.com/32x32/00bcd4/ffffff?text=L" alt="Logo">
+      <span>YourApp</span>
+    </a>
+    <div class="header-actions">
+      <a href="/login/" class="btn btn-secondary">Login</a>
+      <a href="/dashboard/" class="btn btn-primary">Dashboard</a>
+    </div>
+  </header>
+
+  <main style="margin-top: 70px; min-height: calc(100vh - 70px); display: flex; align-items: center; justify-content: center; padding: 2rem;">
+    <div class="text-center" style="max-width: 500px;">
+      <div style="font-size: 6rem; color: var(--error-color); margin-bottom: 1rem; font-weight: 700;">
+        <i class="material-icons" style="font-size: inherit;">error</i>
+      </div>
+      
+      <h1 style="font-size: 2rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-color);">
+        Server Error
+      </h1>
+      
+      <p style="color: var(--text-secondary); margin-bottom: 2rem; font-size: 1.1rem; line-height: 1.6;">
+        We're experiencing some technical difficulties. Our team has been notified and is working to fix the issue.
+      </p>
+      
+      <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem;">
+        <button onclick="location.reload()" class="btn btn-primary">
+          <i class="material-icons">refresh</i>
+          Try Again
+        </button>
+        <a href="/" class="btn btn-secondary">
+          <i class="material-icons">home</i>
+          Go Home
+        </a>
+      </div>
+      
+      <div style="padding: 1.5rem; background: var(--secondary-bg); border-radius: 12px; border: 1px solid var(--border-color); text-align: left;">
+        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-color);">
+          What you can do:
+        </h3>
+        <ul style="color: var(--text-secondary); line-height: 1.8; padding-left: 1.5rem;">
+          <li>Wait a few minutes and try again</li>
+          <li>Check your internet connection</li>
+          <li>Clear your browser cache and cookies</li>
+          <li>Contact support if the problem persists</li>
+        </ul>
+      </div>
+      
+      <div style="margin-top: 2rem;">
+        <p style="color: var(--text-secondary); font-size: 0.9rem;">
+          Error ID: <code style="background: var(--primary-bg); padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace;" id="errorId"></code>
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Generate a random error ID for tracking
+    document.getElementById('errorId').textContent = 'ERR-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+
+    // Check if user is logged in and update header
+    (async function checkAuth() {
+      try {
+        const response = await fetch('/api/auth/me', { 
+          credentials: 'include' 
+        });
+        
+        if (response.ok) {
+          const headerActions = document.querySelector('.header-actions');
+          headerActions.innerHTML = '<a href="/dashboard/" class="btn btn-primary">Go to Dashboard</a>';
+        }
+      } catch (error) {
+        // User not logged in or API is down, keep current header
+      }
+    })();
+
+    // Auto-retry after 30 seconds
+    let retryCountdown = 30;
+    const retryBtn = document.querySelector('button[onclick="location.reload()"]');
+    const originalText = retryBtn.innerHTML;
+
+    function updateRetryButton() {
+      if (retryCountdown > 0) {
+        retryBtn.innerHTML = `<i class="material-icons">refresh</i>Auto-retry in ${retryCountdown}s`;
+        retryCountdown--;
+        setTimeout(updateRetryButton, 1000);
+      } else {
+        location.reload();
+      }
+    }
+
+    // Start countdown after 5 seconds
+    setTimeout(() => {
+      updateRetryButton();
+    }, 5000);
+  </script>
+
+  <style>
+    code {
+      background: var(--primary-bg);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+    }
+    
+    @media (max-width: 768px) {
+      main {
+        padding: 1rem !important;
+      }
+      
+      h1 {
+        font-size: 1.5rem !important;
+      }
+      
+      .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+      }
+    }
+  </style>
+</body>
+</html>
