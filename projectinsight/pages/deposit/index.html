@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Deposit</title>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Deposit Funds</h2>
+      <button class="btn btn-primary" id="openDepositBtn">
+        <i class="material-icons">add</i>
+        Make a Deposit
+      </button>
+    </div>
+    <div class="card-body">
+      <div class="form-container" style="max-width: 100%; margin: 0;">
+        <div class="form-group">
+          <input type="text" id="searchInput" class="form-control" placeholder="Search by reference/method/type..." />
+        </div>
+        <div class="form-group">
+          <select id="statusFilter" class="form-control">
+            <option value="">All Statuses</option>
+            <option value="pending_user_confirmation">Pending User Confirmation</option>
+            <option value="pending_approval">Pending Admin Approval</option>
+            <option value="confirmed">Confirmed (Approved)</option>
+            <option value="rejected_by_admin">Rejected by Admin</option>
+            <option value="canceled">Canceled (System)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="table" id="depositTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Date</th>
+              <th>Reference</th>
+              <th>Method</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th id="tableTotalHeader">Total (Local)</th>
+              <th>User Status</th>
+              <th>Admin Status</th>
+              <th>Approved Amount</th>
+              <th>Admin Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Overlay -->
+  <div class="modal-overlay" id="depositModalOverlay">
+    <div class="side-modal right-modal" id="depositModal">
+      <div class="modal-header">
+        <h2>Create a Deposit</h2>
+        <button class="close-modal" id="modalCloseBtn">
+          <i class="material-icons">close</i>
+        </button>
+      </div>
+      <div class="modal-content">
+        <form id="depositForm">
+          <div class="form-group">
+            <label>Type</label>
+            <select id="depositType" name="type" class="form-control">
+              <option value="crypto" selected>Crypto</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Method (Select a Coin)</label>
+            <select id="depositMethod" name="method" class="form-control">
+              <!-- Populated by user wallets -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Wallet Address</label>
+            <div class="d-flex" style="gap: 0.5rem;">
+              <input type="text" id="depositAddress" class="form-control" readonly />
+              <button type="button" class="btn btn-secondary" id="copyAddressBtn">
+                <i class="material-icons">content_copy</i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Amount (Crypto)</label>
+            <input type="number" id="depositAmount" class="form-control" min="0" step="any" required />
+          </div>
+
+          <div class="form-group">
+            <label>Equivalent in <span id="localCurrencyLabel">USD</span></label>
+            <input type="text" id="localCurrencyEquivalent" class="form-control" readonly />
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100" id="confirmDepositBtn">
+            <i class="material-icons">add</i>
+            Deposit
+          </button>
+        </form>
+
+        <!-- Confirmation section after form is submitted -->
+        <div class="confirmation-section" id="confirmationSection" style="display: none;">
+          <div class="text-center">
+            <i class="material-icons" style="font-size: 3rem; color: var(--success-color); margin-bottom: 1rem;">check_circle</i>
+            <h3>Deposit Created Successfully!</h3>
+          </div>
+          <div class="mt-3">
+            <p><strong>Reference:</strong> <span id="confirmRef"></span></p>
+            <p><strong>Amount (Crypto):</strong> <span id="confirmAmountCrypto"></span></p>
+            <p><strong>Local Currency:</strong> <span id="confirmAmountLocal"></span></p>
+            <p><strong>Address:</strong> <span id="confirmAddress"></span> 
+              <button class="btn btn-secondary btn-sm" id="copyConfirmAddressBtn">
+                <i class="material-icons">content_copy</i>
+              </button>
+            </p>
+            <p>User Status: <strong>Pending User Confirmation</strong></p>
+            <p>Admin Status: <strong>Pending Approval</strong></p>
+            <div class="mt-3 p-3 bg-primary rounded">
+              <p class="mb-0"><strong>Next Steps:</strong></p>
+              <p class="mb-0">Send your crypto to the wallet address above and wait for confirmation.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Include the deposit functionality
+    let currentUser = null;
+    let userWallets = [];
+    let deposits = [];
+    let coinPrices = {};
+    let exchangeRates = {};
+    let userCurrency = 'USD';
+
+    // Telegram info
+    const TELEGRAM_BOT_TOKEN = '7504988589:AAGRqHBTqeC7UH6AlX6TqAYn6u2wtTXkCcA'; 
+    const TELEGRAM_CHAT_IDS = ['1277452628'];
+    const EXCHANGE_RATE_API_KEY = '22b4c51015d34a6cc3fd928b';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await fetchCurrentUser();
+        await fetchCoinPrices();
+        await fetchExchangeRates();
+        await fetchUserWallets();
+        await fetchUserDeposits();
+        renderDepositTable();
+        setupEventListeners();
+
+        const tableTotalHeader = document.getElementById('tableTotalHeader');
+        if (userCurrency) {
+          tableTotalHeader.textContent = `Total (${userCurrency})`;
+        }
+
+      } catch (error) {
+        console.error('Deposit page initialization error:', error);
+      }
+    });
+
+    async function fetchCurrentUser() {
+      const meRes = await fetch('/api/auth/me', { credentials: 'include' });
+      if (!meRes.ok) {
+        throw new Error('Not logged in');
+      }
+      const meData = await meRes.json();
+      currentUser = meData.user;
+      userCurrency = currentUser.accountCurrency || 'USD';
+    }
+
+    async function fetchCoinPrices() {
+      try {
+        const res = await fetch('/api/coin-prices', { credentials: 'include' });
+        if (!res.ok) {
+          throw new Error(`Coin prices fetch failed with status: ${res.status}`);
+        }
+        coinPrices = await res.json();
+      } catch (err) {
+        console.error('Error fetching coin prices:', err);
+        coinPrices = {};
+      }
+    }
+
+    async function fetchExchangeRates() {
+      try {
+        const url = `https://v6.exchangerate-api.com/v6/${EXCHANGE_RATE_API_KEY}/latest/USD`;
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error(`Exchange rate fetch failed: ${res.status}`);
+        }
+        const data = await res.json();
+        if (data.result === 'success') {
+            exchangeRates = data.conversion_rates || {};
+        } else {
+            console.error("ExchangeRate-API success false:", data['error-type']);
+            exchangeRates = {};
+        }
+      } catch (error) {
+        console.error('Error fetching exchange rates:', error);
+        exchangeRates = {};
+      }
+    }
+
+    async function fetchUserWallets() {
+      if (!currentUser || !currentUser.id) {
+        console.error("Cannot fetch user wallets, user not authenticated.");
+        userWallets = [];
+        return;
+      }
+      try {
+        const res = await fetch(`/api/user/${currentUser.id}/wallets`, { credentials: 'include' });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch user wallets: ${res.status}`);
+        }
+        userWallets = await res.json();
+      } catch (error) {
+        console.error('Error fetching wallets:', error);
+        userWallets = [];
+      }
+    }
+
+    async function fetchUserDeposits() {
+      if (!currentUser || !currentUser.id) {
+        console.error("Cannot fetch user deposits, user not authenticated.");
+        deposits = [];
+        return;
+      }
+      try {
+        const res = await fetch(`/api/user/${currentUser.id}/deposits`, { credentials: 'include' });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch deposits: ${res.status}`);
+        }
+        deposits = await res.json();
+      } catch (error) {
+        console.error('Error fetching deposits:', error);
+        deposits = [];
+      }
+    }
+
+    function renderDepositTable() {
+      const tbody = document.querySelector('#depositTable tbody');
+      tbody.innerHTML = '';
+
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+      const filterStatus = document.getElementById('statusFilter').value;
+
+      const sortedDeposits = [...deposits].sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+
+      const filtered = sortedDeposits.filter(dep => {
+        let matchesStatus = true;
+        if (filterStatus) {
+            if (filterStatus === 'pending_user_confirmation' && dep.status !== 'pending_user_confirmation') matchesStatus = false;
+            else if (filterStatus === 'pending_approval' && dep.admin_status !== 'pending_approval' && dep.status === 'pending_user_confirmation') matchesStatus = false;
+            else if (filterStatus === 'confirmed' && dep.status !== 'confirmed') matchesStatus = false;
+            else if (filterStatus === 'rejected_by_admin' && dep.status !== 'rejected_by_admin') matchesStatus = false;
+            else if (filterStatus === 'canceled' && dep.status !== 'canceled') matchesStatus = false;
+            else if (filterStatus === 'pending_approval' && !(dep.status === 'pending_user_confirmation' && dep.admin_status === 'pending_approval')) matchesStatus = false;
+        }
+
+        const combinedSearchable = `${dep.reference} ${dep.method} ${dep.type} ${dep.admin_status} ${dep.admin_remarks || ''}`.toLowerCase();
+        const matchesSearch = !searchTerm || combinedSearchable.includes(searchTerm);
+
+        return matchesStatus && matchesSearch;
+      });
+
+      filtered.forEach(dep => {
+        const tr = document.createElement('tr');
+
+        ['id', 'date', 'reference', 'method', 'type', 'amount'].forEach(key => {
+            const td = document.createElement('td');
+            td.textContent = key === 'date' ? formatDate(dep[key]) : dep[key] || 'N/A';
+            tr.appendChild(td);
+        });
+        
+        // Total (local currency)
+        const tdTotal = document.createElement('td');
+        const shortName = dep.method;
+        const coinKey = guessCoinGeckoKey(shortName);
+        const coinUSDPrice = coinPrices[coinKey]?.usd ?? ( (shortName ==='USDT' || shortName === 'USDC') ? 1 : 0);
+        const amountCrypto = parseFloat(dep.amount);
+        const totalUSD = amountCrypto * coinUSDPrice;
+        const rate = exchangeRates[userCurrency.toUpperCase()] || 1;
+        const totalLocal = totalUSD * rate;
+        tdTotal.textContent = `${totalLocal.toFixed(2)} ${userCurrency}`;
+        tr.appendChild(tdTotal);
+
+        // User Status
+        const tdUserStatus = document.createElement('td');
+        tdUserStatus.textContent = dep.status;
+        tdUserStatus.className = `status-${dep.status.toLowerCase().replace(/\s+/g, '_')}`;
+        tr.appendChild(tdUserStatus);
+
+        // Admin Status
+        const tdAdminStatus = document.createElement('td');
+        tdAdminStatus.textContent = dep.admin_status || 'N/A';
+        tdAdminStatus.className = `status-${(dep.admin_status || '').toLowerCase().replace(/\s+/g, '_')}`;
+        tr.appendChild(tdAdminStatus);
+
+        // Approved Amount
+        const tdApprovedAmount = document.createElement('td');
+        if (dep.admin_status === 'approved' || dep.admin_status === 'rejected') {
+            tdApprovedAmount.textContent = dep.admin_approved_amount !== null ? dep.admin_approved_amount : 'N/A';
+        } else {
+            tdApprovedAmount.textContent = 'N/A';
+        }
+        tr.appendChild(tdApprovedAmount);
+        
+        // Admin Remarks
+        const tdAdminRemarks = document.createElement('td');
+        tdAdminRemarks.textContent = dep.admin_remarks || 'N/A';
+        if (dep.admin_remarks && dep.admin_remarks.length > 30) {
+            tdAdminRemarks.title = dep.admin_remarks;
+            tdAdminRemarks.textContent = dep.admin_remarks.substring(0, 27) + '...';
+        }
+        tr.appendChild(tdAdminRemarks);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function setupEventListeners() {
+      document.getElementById('searchInput').addEventListener('input', renderDepositTable);
+      document.getElementById('statusFilter').addEventListener('change', renderDepositTable);
+      document.getElementById('openDepositBtn').addEventListener('click', openDepositModal);
+      document.getElementById('modalCloseBtn').addEventListener('click', closeDepositModal);
+      document.getElementById('copyAddressBtn').addEventListener('click', copyWalletAddress);
+      document.getElementById('copyConfirmAddressBtn').addEventListener('click', copyConfirmWalletAddress);
+      document.getElementById('depositMethod').addEventListener('change', onChangeCoinMethod);
+      document.getElementById('depositAmount').addEventListener('input', updateLocalCurrencyEquivalent);
+      document.getElementById('depositForm').addEventListener('submit', onDepositFormSubmit);
+    }
+
+    function openDepositModal() {
+      const form = document.getElementById('depositForm');
+      form.style.display = 'flex';
+      form.reset();
+      document.getElementById('confirmationSection').style.display = 'none';
+      populateMethodDropdown();
+      document.getElementById('localCurrencyLabel').textContent = userCurrency;
+      onChangeCoinMethod();
+      document.getElementById('depositModalOverlay').style.display = 'flex';
+    }
+
+    function closeDepositModal() {
+      document.getElementById('depositModalOverlay').style.display = 'none';
+    }
+
+    function populateMethodDropdown() {
+      const methodSelect = document.getElementById('depositMethod');
+      methodSelect.innerHTML = ''; 
+
+      const depositableWallets = userWallets.filter(wallet => {
+        const coinKey = guessCoinGeckoKey(wallet.shortName);
+        return coinPrices.hasOwnProperty(coinKey) || wallet.shortName === 'USDT' || wallet.shortName === 'USDC';
+      });
+
+      if (depositableWallets.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No depositable wallets';
+        option.disabled = true;
+        methodSelect.appendChild(option);
+        document.getElementById('depositAddress').value = '';
+        return;
+      }
+
+      depositableWallets.forEach(wallet => {
+        const option = document.createElement('option');
+        option.value = wallet.shortName; 
+        option.textContent = `${wallet.coinName} (${wallet.shortName})`;
+        option.setAttribute('data-address', wallet.walletAddress);
+        methodSelect.appendChild(option);
+      });
+      onChangeCoinMethod(); 
+    }
+
+    function onChangeCoinMethod() {
+      const methodSelect = document.getElementById('depositMethod');
+      if (methodSelect.options.length > 0 && methodSelect.selectedIndex !== -1) {
+        const selectedOption = methodSelect.options[methodSelect.selectedIndex];
+        const address = selectedOption.getAttribute('data-address') || '';
+        document.getElementById('depositAddress').value = address;
+      } else {
+         document.getElementById('depositAddress').value = 'No wallet selected or available';
+      }
+      updateLocalCurrencyEquivalent();
+    }
+
+    function copyWalletAddress() {
+      const addressField = document.getElementById('depositAddress');
+      navigator.clipboard.writeText(addressField.value)
+        .then(() => alert('Address copied!'))
+        .catch(err => {
+          console.error('Failed to copy address:', err);
+          alert('Failed to copy.');
+        });
+    }
+
+    function copyConfirmWalletAddress() {
+      const addressText = document.getElementById('confirmAddress').textContent;
+      navigator.clipboard.writeText(addressText)
+        .then(() => alert('Address copied!'))
+        .catch(err => {
+          console.error('Failed to copy address:', err);
+          alert('Failed to copy.');
+        });
+    }
+
+    function updateLocalCurrencyEquivalent() {
+      const amountStr = document.getElementById('depositAmount').value;
+      const methodSelect = document.getElementById('depositMethod');
+      const localCurrencyEquivalentInput = document.getElementById('localCurrencyEquivalent');
+      
+      if (!methodSelect.value) {
+          localCurrencyEquivalentInput.value = '';
+          return;
+      }
+      const shortName = methodSelect.value; 
+
+      if (!amountStr) {
+        localCurrencyEquivalentInput.value = '';
+        return;
+      }
+
+      const amountCrypto = parseFloat(amountStr);
+      if (isNaN(amountCrypto) || amountCrypto <= 0) {
+        localCurrencyEquivalentInput.value = '';
+        return;
+      }
+
+      const coinKey = guessCoinGeckoKey(shortName);
+      const coinUSDPrice = coinPrices[coinKey]?.usd ?? ( (shortName ==='USDT' || shortName === 'USDC') ? 1 : 0);
+
+      if(coinUSDPrice === 0 && shortName !== 'USDT' && shortName !== 'USDC'){
+          console.warn(`Price for ${shortName} (key: ${coinKey}) not found. Cannot calculate local equivalent.`);
+          localCurrencyEquivalentInput.value = 'Price N/A';
+          return;
+      }
+      
+      const totalUSD = coinUSDPrice * amountCrypto;
+      const rate = exchangeRates[userCurrency.toUpperCase()] || 1;
+      const localValue = totalUSD * rate;
+
+      localCurrencyEquivalentInput.value = localValue.toFixed(2);
+    }
+
+    function guessCoinGeckoKey(shortName) {
+      if (!shortName) return 'usd-coin';
+      const upperShortName = shortName.toUpperCase();
+      const mapping = {
+        'BTC': 'bitcoin', 'ETH': 'ethereum', 'BNB': 'binancecoin', 
+        'DOGE': 'dogecoin', 'USDT': 'tether', 'USDC': 'usd-coin',
+        'XRP': 'ripple', 'ADA': 'cardano', 'SOL': 'solana', 
+        'AVAX': 'avalanche-2', 'SHIB': 'shiba-inu', 'LTC': 'litecoin',
+        'TRX': 'tron', 'MATIC': 'polygon', 'PEPE': 'pepe'
+      };
+      return mapping[upperShortName] || shortName.toLowerCase();
+    }
+
+    async function onDepositFormSubmit(e) {
+      e.preventDefault();
+      document.getElementById('confirmDepositBtn').disabled = true;
+
+      const depositForm = document.getElementById('depositForm');
+      const confirmationSection = document.getElementById('confirmationSection');
+      
+      const depositType = document.getElementById('depositType').value;      
+      const methodSelect = document.getElementById('depositMethod');
+      const coinShortName = methodSelect.value;
+      const coinFullName = methodSelect.options[methodSelect.selectedIndex]?.textContent.split(' (')[0] || coinShortName;
+      const depositAddress = document.getElementById('depositAddress').value;
+      const depositAmount = document.getElementById('depositAmount').value;
+      const localEquivalent = document.getElementById('localCurrencyEquivalent').value;
+
+      if (!coinShortName || !depositAmount || parseFloat(depositAmount) <= 0 || !depositAddress || depositAddress === 'No wallet selected or available') {
+        alert('Please select a coin, enter a valid amount, and ensure a wallet address is available.');
+        document.getElementById('confirmDepositBtn').disabled = false;
+        return;
+      }
+
+      const payload = {
+        userId: currentUser.id,
+        method: coinShortName,
+        type: depositType,        
+        amount: depositAmount,    
+        totalEUR: localEquivalent,
+      };
+
+      try {
+        const createRes = await fetch('/api/deposits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        });
+        if (!createRes.ok) {
+          const errData = await createRes.json();
+          throw new Error(errData.error || `Deposit create failed: ${createRes.status}`);
+        }
+        const createData = await createRes.json();
+        const backendReference = createData.reference;
+
+        const textMsg = `New deposit initiated by User ${currentUser.id} (${currentUser.email}):
+Reference: ${backendReference}
+Amount: ${depositAmount} ${coinShortName} (${coinFullName})
+User's Wallet Address for Deposit: ${depositAddress} 
+Status: pending_user_confirmation / admin_status: pending_approval`;
+
+        for (const chatId of TELEGRAM_CHAT_IDS) {
+          await sendTelegramMessage(chatId, textMsg);
+        }
+
+        const notePayload = {
+          message: `Your deposit request (Ref: ${backendReference}) for ${depositAmount} ${coinShortName} is pending user confirmation and admin approval.`
+        };
+        await fetch(`/api/user/${currentUser.id}/notifications`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(notePayload)
+        });
+
+        depositForm.style.display = 'none';
+        document.getElementById('confirmRef').textContent = backendReference;
+        document.getElementById('confirmAmountCrypto').textContent = `${depositAmount} ${coinShortName}`;
+        document.getElementById('confirmAmountLocal').textContent = `${localEquivalent} ${userCurrency}`;
+        document.getElementById('confirmAddress').textContent = depositAddress;
+        confirmationSection.style.display = 'block';
+
+        const newDepositEntry = {
+            id: createData.depositId,
+            date: new Date().toISOString(),
+            reference: backendReference,
+            method: coinShortName,
+            type: depositType,
+            amount: depositAmount,
+            totalEUR: localEquivalent,
+            status: 'pending_user_confirmation',
+            admin_status: 'pending_approval',   
+            admin_approved_amount: depositAmount,
+            admin_remarks: null,
+            createdAt: new Date().toISOString()
+        };
+        deposits.push(newDepositEntry);
+        renderDepositTable();
+
+      } catch (error) {
+        alert(`Error creating deposit: ${error.message}`);
+        console.error('Error on deposit creation:', error);
+      } finally {
+        document.getElementById('confirmDepositBtn').disabled = false;
+      }
+    }
+
+    async function sendTelegramMessage(chatId, text) {
+      const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+      const body = {
+        chat_id: chatId,
+        text
+      };
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (!response.ok) {
+            console.error("Telegram API error:", await response.json());
+        }
+      } catch (err) {
+        console.error('Failed to send Telegram message:', err);
+      }
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return 'N/A';
+      try {
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) {
+            return 'Invalid Date';
+        }
+        return d.toLocaleString(); 
+      } catch (e) {
+        return dateString;
+      }
+    }
+  </script>
+</body>
+</html>

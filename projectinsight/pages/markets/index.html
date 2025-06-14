@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Markets</title>
+</head>
+<body>
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Markets</h2>
+    </div>
+    <div class="card-body">
+      <div class="form-container" style="max-width: 100%; margin: 0;">
+        <div class="form-group">
+          <input type="text" id="searchBar" class="form-control" placeholder="Search assets..." />
+        </div>
+        <div class="form-group">
+          <select id="filterSelect" class="form-control">
+            <option value="All">All Types</option>
+            <option value="Crypto">Crypto</option>
+            <option value="Fiat">Fiat</option>
+            <option value="Stocks">Stocks</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>★</th>
+              <th>Asset</th>
+              <th>Type</th>
+              <th>Current Price (EUR)</th>
+              <th>In Your Wallet</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="assetsTableBody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let userWallets = [];
+    let coinPricesUSD = {};
+    let exchangeRates = {};
+    let userCurrency = 'USD';
+
+    const assets = [
+      { symbol: 'AAPL',  name: 'Apple',                    type: 'Stocks' },
+      { symbol: 'AAVE',  name: 'AAVE',                     type: 'Crypto' },
+      { symbol: 'ABT',   name: 'Abbot Labs',               type: 'Stocks' },
+      { symbol: 'ADA',   name: 'Cardano',                  type: 'Crypto' },
+      { symbol: 'ADBE',  name: 'Adobe',                    type: 'Stocks' },
+      { symbol: 'ALGO',  name: 'Algorand',                 type: 'Crypto' },
+      { symbol: 'AMZN',  name: 'Amazon',                   type: 'Stocks' },
+      { symbol: 'AUD',   name: 'Australian Dollar',        type: 'Fiat'   },
+      { symbol: 'AVAX',  name: 'Avalanche',                type: 'Crypto' },
+      { symbol: 'AXS',   name: 'Axie Infinity',            type: 'Crypto' },
+      { symbol: 'BABA',  name: 'Alibaba',                  type: 'Stocks' },
+      { symbol: 'BAC',   name: 'Bank of America',          type: 'Stocks' },
+      { symbol: 'BCH',   name: 'Bitcoin Cash',             type: 'Crypto' },
+      { symbol: 'BTC',   name: 'Bitcoin',                  type: 'Crypto' },
+      { symbol: 'CAD',   name: 'Canadian Dollar',          type: 'Fiat'   },
+      { symbol: 'CHF',   name: 'Swiss Franc',              type: 'Fiat'   },
+      { symbol: 'CRO',   name: 'Cronos',                   type: 'Crypto' },
+      { symbol: 'DAI',   name: 'Dai',                      type: 'Crypto' },
+      { symbol: 'DOGE',  name: 'Dogecoin',                 type: 'Crypto' },
+      { symbol: 'DOT',   name: 'Polkadot',                 type: 'Crypto' },
+      { symbol: 'ETH',   name: 'Ethereum',                 type: 'Crypto' },
+      { symbol: 'EUR',   name: 'Euro',                     type: 'Fiat'   },
+      { symbol: 'FB',    name: 'Meta Platforms Inc',       type: 'Stocks' },
+      { symbol: 'GBP',   name: 'British Pound',            type: 'Fiat'   },
+      { symbol: 'GOOGL', name: 'Google',                   type: 'Stocks' },
+      { symbol: 'LTC',   name: 'Litecoin',                 type: 'Crypto' },
+      { symbol: 'MATIC', name: 'Polygon',                  type: 'Crypto' },
+      { symbol: 'MSFT',  name: 'Microsoft',                type: 'Stocks' },
+      { symbol: 'PEPE',  name: 'Pepe',                     type: 'Crypto' },
+      { symbol: 'SOL',   name: 'Solana',                   type: 'Crypto' },
+      { symbol: 'TSLA',  name: 'Tesla',                    type: 'Stocks' },
+      { symbol: 'UNI',   name: 'Uniswap',                  type: 'Crypto' },
+      { symbol: 'USD',   name: 'United States Dollar',     type: 'Fiat'   },
+      { symbol: 'USDC',  name: 'USD Coin',                 type: 'Crypto' },
+      { symbol: 'USDT',  name: 'Tether',                   type: 'Crypto' },
+      { symbol: 'XRP',   name: 'Ripple',                   type: 'Crypto' }
+    ];
+
+    const coinGeckoMap = {
+      BTC: 'bitcoin',
+      ETH: 'ethereum',
+      USDC: 'usd-coin',
+      USDT: 'tether',
+      BNB: 'binancecoin',
+      ADA: 'cardano',
+      DOGE: 'dogecoin',
+      SOL: 'solana',
+      AVAX: 'avalanche-2',
+      SHIB: 'shiba-inu',
+      LTC: 'litecoin',
+      TRX: 'tron',
+      MATIC: 'matic-network',
+      PEPE: 'pepe',
+      XRP: 'ripple',
+      CRO: 'crypto-com-chain',
+      DAI: 'dai',
+      UNI: 'uniswap',
+      AAVE: 'aave',
+      ALGO: 'algorand',
+      BCH: 'bitcoin-cash',
+      AXS: 'axie-infinity'
+    };
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await checkAuth();
+        await fetchCoinPrices();
+        await fetchExchangeRates();
+        await fetchUserWallets();
+
+        document.getElementById('searchBar').addEventListener('input', renderTable);
+        document.getElementById('filterSelect').addEventListener('change', renderTable);
+
+        renderTable();
+
+      } catch (error) {
+        console.error('Markets page initialization error:', error);
+      }
+    });
+
+    async function checkAuth() {
+      const meRes = await fetch('/api/auth/me', { credentials: 'include' });
+      if (!meRes.ok) {
+        throw new Error('Not logged in');
+      }
+      const meData = await meRes.json();
+      currentUser = meData.user;
+      userCurrency = currentUser.accountCurrency || 'USD';
+    }
+
+    async function fetchCoinPrices() {
+      try {
+        const res = await fetch('/api/coin-prices', { credentials: 'include' });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch coin prices: ${res.status}`);
+        }
+        coinPricesUSD = await res.json();
+      } catch (err) {
+        console.error('Error fetching coin prices:', err);
+        coinPricesUSD = {};
+      }
+    }
+
+    async function fetchExchangeRates() {
+      const EXCHANGE_RATE_API_KEY = '22b4c51015d34a6cc3fd928b'; 
+      const url = `https://v6.exchangerate-api.com/v6/${EXCHANGE_RATE_API_KEY}/latest/USD`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error(`Exchange rate fetch failed: ${res.status}`);
+        }
+        const data = await res.json();
+        exchangeRates = data.conversion_rates || {};
+      } catch (err) {
+        console.error('Error fetching exchange rates:', err);
+        exchangeRates = {};
+      }
+    }
+
+    async function fetchUserWallets() {
+      try {
+        const res = await fetch(`/api/user/${currentUser.id}/wallets`, { credentials: 'include' });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch user wallets: ${res.status}`);
+        }
+        userWallets = await res.json();
+      } catch (err) {
+        console.error('Error fetching wallets:', err);
+        userWallets = [];
+      }
+    }
+
+    function renderTable() {
+      const searchQuery = document.getElementById('searchBar').value.toLowerCase();
+      const filterType = document.getElementById('filterSelect').value;
+      const starredSymbols = getStarredAssets();
+
+      let filtered = assets.filter(a => {
+        const matchesSearch = a.name.toLowerCase().includes(searchQuery) ||
+                              a.symbol.toLowerCase().includes(searchQuery);
+        const matchesFilter = (filterType === 'All') || (a.type === filterType);
+        return matchesSearch && matchesFilter;
+      });
+
+      filtered.sort((a, b) => {
+        const aStar = starredSymbols.includes(a.symbol);
+        const bStar = starredSymbols.includes(b.symbol);
+        if (aStar && !bStar) return -1;
+        if (!aStar && bStar) return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      const tbody = document.getElementById('assetsTableBody');
+      tbody.innerHTML = '';
+
+      for (let asset of filtered) {
+        const tr = document.createElement('tr');
+
+        const starTd = document.createElement('td');
+        const starIcon = document.createElement('span');
+        starIcon.textContent = '★';
+        starIcon.classList.add('star');
+        if (starredSymbols.includes(asset.symbol)) {
+          starIcon.classList.add('filled');
+        }
+        starIcon.onclick = () => toggleStar(asset.symbol);
+        starTd.appendChild(starIcon);
+        tr.appendChild(starTd);
+
+        const nameTd = document.createElement('td');
+        nameTd.textContent = asset.name;
+        tr.appendChild(nameTd);
+
+        const typeTd = document.createElement('td');
+        typeTd.textContent = asset.type;
+        tr.appendChild(typeTd);
+
+        let priceEur = 0;
+        if (asset.type === 'Crypto') {
+          const usdPrice = getUsdPriceFromShortName(asset.symbol);
+          const eurRate = exchangeRates['EUR'] || 1;
+          priceEur = usdPrice * eurRate;
+        } else if (asset.type === 'Fiat') {
+          priceEur = (asset.symbol === 'EUR') ? 1 : 0;
+        } else {
+          priceEur = 0;
+        }
+        const priceTd = document.createElement('td');
+        priceTd.textContent = `€${formatNumber(priceEur)}/${asset.symbol}`;
+        tr.appendChild(priceTd);
+
+        let userBalance = '0.00';
+        const foundWallet = userWallets.find(w => w.shortName.toUpperCase() === asset.symbol.toUpperCase());
+        if (foundWallet && foundWallet.balance) {
+          userBalance = foundWallet.balance;
+        }
+        const walletTd = document.createElement('td');
+        walletTd.textContent = `${userBalance} ${asset.symbol}`;
+        tr.appendChild(walletTd);
+
+        const actionTd = document.createElement('td');
+        const tradeBtn = document.createElement('button');
+        tradeBtn.textContent = 'Trade';
+        tradeBtn.classList.add('btn', 'btn-success');
+        tradeBtn.onclick = () => window.navigateToPage('trade');
+        actionTd.appendChild(tradeBtn);
+        tr.appendChild(actionTd);
+
+        tbody.appendChild(tr);
+      }
+    }
+
+    function getStarredAssets() {
+      const name = 'starred=';
+      const decoded = decodeURIComponent(document.cookie);
+      const parts = decoded.split(';');
+      for (let p of parts) {
+        const c = p.trim();
+        if (c.startsWith(name)) {
+          return c.substring(name.length).split(',');
+        }
+      }
+      return [];
+    }
+
+    function setStarredAssets(arr) {
+      const expires = new Date();
+      expires.setFullYear(expires.getFullYear() + 1);
+      document.cookie = `starred=${arr.join(',')}; path=/; expires=${expires.toUTCString()}`;
+    }
+
+    function toggleStar(symbol) {
+      let starred = getStarredAssets();
+      if (starred.includes(symbol)) {
+        starred = starred.filter(s => s !== symbol);
+      } else {
+        starred.push(symbol);
+        alert('Added to watchlist');
+      }
+      setStarredAssets(starred);
+      renderTable();
+    }
+
+    function getUsdPriceFromShortName(shortName) {
+      const key = guessCoinGeckoKey(shortName);
+      if (!coinPricesUSD[key] || !coinPricesUSD[key].usd) {
+        return 1;
+      }
+      return coinPricesUSD[key].usd;
+    }
+
+    function guessCoinGeckoKey(shortName) {
+      const upper = shortName.toUpperCase();
+      if (coinGeckoMap[upper]) return coinGeckoMap[upper];
+      return 'usd-coin';
+    }
+
+    function formatNumber(num) {
+      if (!num || isNaN(num)) return '0.00';
+      return parseFloat(num).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 6
+      });
+    }
+
+    // Star styling
+    const style = document.createElement('style');
+    style.textContent = `
+      .star {
+        cursor: pointer;
+        font-size: 18px;
+        color: var(--text-secondary);
+        transition: all 0.2s;
+      }
+      .star.filled {
+        color: #ffd700;
+      }
+      .star:hover {
+        transform: scale(1.2);
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>
